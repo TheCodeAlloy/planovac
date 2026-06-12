@@ -601,21 +601,35 @@ function render(){
       const entries=dateMap[ds]||[];
 
       if(entries.length>0){
-        // One column-strip per event
         const n=entries.length;
         const pct=100/n;
         entries.forEach(({ev,isStart,isOnly},i)=>{
           const cat=CATS[ev.cat]||CATS.event;
+          const isUser=ev.id&&ev.id.startsWith('u_');
           const strip=el('div','cell-strip');
           strip.style.cssText=`position:absolute;top:0;bottom:0;left:${i*pct}%;width:${pct}%;background:${cat.bg};${isWeekend(year,month,d)?'opacity:0.9;':''}`;
-          // Add vertical separator between strips
           if(i>0) strip.style.borderLeft='1px solid rgba(255,255,255,0.5)';
-          // Show label only on start day or single-day events
           if(isStart||isOnly){
             const lbl=el('div','cell-label');
             lbl.style.color=cat.color;
             lbl.textContent=ev.name;
             strip.appendChild(lbl);
+          }
+          // Drag on strip level — each event independently
+          if(isUser){
+            strip.style.pointerEvents='auto';
+            strip.setAttribute('draggable','true');
+            strip.addEventListener('dragstart',e=>{
+              e.stopPropagation();
+              dragEventId=ev.id; dragSourceDs=ds;
+              e.dataTransfer.effectAllowed='move';
+              e.dataTransfer.setData('text/plain',ev.id);
+              setTimeout(()=>strip.style.opacity='0.35',0);
+            });
+            strip.addEventListener('dragend',()=>{
+              strip.style.opacity='';
+              dragEventId=null; dragSourceDs=null;
+            });
           }
           cell.appendChild(strip);
         });
@@ -627,18 +641,7 @@ function render(){
       cell.addEventListener('mousemove',posTooltip);
       cell.addEventListener('mouseleave',hideTooltip);
 
-      const userEntries=entries.filter(e=>e.ev.id&&e.ev.id.startsWith('u_'));
-      if(userEntries.length>0){
-        cell.setAttribute('draggable','true');
-        cell.addEventListener('dragstart',e=>{
-          const pick=userEntries.find(e=>e.isStart||e.isOnly)||userEntries[0];
-          dragEventId=pick.ev.id;dragSourceDs=ds;
-          e.dataTransfer.effectAllowed='move';
-          e.dataTransfer.setData('text/plain',dragEventId);
-          setTimeout(()=>cell.classList.add('drag-source'),0);
-        });
-        cell.addEventListener('dragend',()=>{cell.classList.remove('drag-source');dragEventId=null;dragSourceDs=null;});
-      }
+      // Drop target stays on cell level
       cell.addEventListener('dragover',e=>{if(!dragEventId)return;e.preventDefault();cell.classList.add('drag-over');});
       cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));
       cell.addEventListener('drop',e=>{
@@ -845,7 +848,7 @@ async function ctxCopy() {
   // Open add modal pre-filled with copied data, new id
   editId = null;
   document.getElementById('add-title').textContent = 'Kopírovat událost';
-  document.getElementById('f-name').value = ev.name + ' (kopie)';
+  document.getElementById('f-name').value = ev.name;
   document.getElementById('f-date-from').value = ev.dateFrom;
   document.getElementById('f-date-to').value = ev.dateTo || '';
   document.getElementById('f-cat').value = ev.cat;
