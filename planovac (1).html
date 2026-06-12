@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roční plánovač</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --red: #8B1A1A; --red-dark: #6e1414;
+  --gray-50: #f8f7f4; --gray-100: #eeecea; --gray-200: #d8d6d2;
+  --gray-400: #9a9790; --gray-600: #5a5753; --gray-800: #2c2b28;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --cur-col-bg: rgba(139,26,26,0.07);
+}
+html, body { height: 100%; font-family: var(--font); background: var(--gray-50); color: var(--gray-800); overflow: hidden; }
+body.dark {
+  --gray-50: #1a1918; --gray-100: #242322; --gray-200: #3a3836;
+  --gray-400: #7a7773; --gray-600: #b0ada8; --gray-800: #e8e6e2;
+  --cur-col-bg: rgba(200,80,80,0.13);
+  background: #1a1918;
+}
+body.dark .dc { background: #242322; }
+body.dark .dc.wknd { background: #1e1d1c; }
+body.dark .mh { background: #6e1414; }
+body.dark .mh.corner { background: #0a0a0a; }
+body.dark .modal { background: #2a2928; }
+body.dark .form-row input, body.dark .form-row select, body.dark .form-row textarea { background: #333; color: #e8e6e2; border-color: #444; }
+body.dark .modal-btns button { background: #333; color: #e8e6e2; border-color: #444; }
+body.dark .modal-btns button:hover { background: #444; }
+body.dark .rn { background: #1e1d1c; }
+body.dark .search-input { background: #333; color: #e8e6e2; border-color: #444; }
+body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
+
+#topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px; background: #1c1c1c; color: #fff;
+  height: 46px; flex-shrink: 0;
+}
+#topbar h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+.year-nav { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.year-nav button { background: rgba(255,255,255,0.1); border: none; border-radius: 4px; color: #fff; padding: 4px 10px; cursor: pointer; font-size: 14px; }
+.year-nav button:hover { background: rgba(255,255,255,0.2); }
+.legend { display: flex; gap: 4px; align-items: center; flex: 1; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,0.75); cursor: pointer; padding: 3px 7px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); user-select: none; white-space: nowrap; }
+.leg:hover { background: rgba(255,255,255,0.1); }
+.leg.off { opacity: 0.35; }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.top-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; padding: 5px 9px; cursor: pointer; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+.top-btn:hover { background: rgba(255,255,255,0.2); }
+#upcoming-badge { font-size: 11px; color: rgba(255,255,255,0.6); white-space: nowrap; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.15); padding-left: 10px; }
+#upcoming-badge span { color: #f9c74f; font-weight: 600; }
+#sync-status { font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; }
+#sync-status.ok { color: #4caf50; }
+#sync-status.err { color: #f44336; }
+
+#grid-outer { height: calc(100vh - 46px); overflow-y: auto; overflow-x: hidden; }
+#grid-outer::-webkit-scrollbar { width: 5px; }
+#grid-outer::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
+
+#planner { display: grid; grid-template-columns: 42px repeat(12, 1fr); width: 100%; }
+
+.mh {
+  background: #8B1A1A; color: #fff; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-align: center; padding: 4px 2px 3px;
+  border-right: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.2);
+  position: sticky; top: 0; z-index: 10; line-height: 1.2;
+}
+.mh .mh-year { font-size: 9px; font-weight: 400; opacity: 0.75; display: block; }
+.mh.corner { background: #111; }
+.mh.cur-month { background: #c0392b; box-shadow: inset 0 -3px 0 rgba(255,255,255,0.4); }
+
+.rn {
+  background: var(--gray-100); border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200);
+  font-size: 10px; color: var(--gray-400); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 500; position: sticky; left: 0; z-index: 5; gap: 1px;
+}
+.rn .wk { font-size: 8px; color: var(--gray-200); font-weight: 400; }
+
+.dc {
+  border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200);
+  min-height: 24px; cursor: pointer; position: relative; overflow: hidden;
+}
+.dc.empty { background: var(--gray-100); cursor: default; }
+.dc.today { outline: 2px solid #1c1c1c; outline-offset: -2px; z-index: 2; }
+body.dark .dc.today { outline-color: #fff; }
+.dc.cur-col { background: var(--cur-col-bg); }
+.dc.wknd { background: #e8e8e8; }
+body.dark .dc.wknd { background: #1e1d1c; }
+.dc.wknd:not(.empty):hover { background: #dadada !important; }
+.dc.month-sep { border-left: 2px solid #c0bdb8; }
+body.dark .dc.month-sep { border-left-color: #4a4846; }
+.dc .cell-bg { position: absolute; inset: 0; pointer-events: none; }
+.dc .cell-labels { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; }
+.dc .cell-label { font-size: 10px; line-height: 13px; padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.dc:not(.empty):hover .cell-bg { filter: brightness(0.92); }
+
+.tooltip {
+  position: fixed; z-index: 999; background: #1c1c1c; color: #fff;
+  font-size: 11px; padding: 6px 10px; border-radius: 6px; pointer-events: none;
+  max-width: 230px; line-height: 1.6; box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  display: none;
+}
+.tooltip.show { display: block; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 10px; padding: 22px 24px; width: 380px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+.modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--gray-800); }
+.form-row { margin-bottom: 11px; }
+.form-row label { display: block; font-size: 11px; color: var(--gray-600); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.form-row input, .form-row select { width: 100%; padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; color: var(--gray-800); background: #fff; outline: none; }
+.form-row input:focus, .form-row select:focus { border-color: var(--red); }
+.form-row textarea { width: 100%; padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; color: var(--gray-800); background: #fff; outline: none; resize: vertical; min-height: 54px; font-family: var(--font); }
+.form-row textarea:focus { border-color: var(--red); }
+.date-range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.repeat-row { display: flex; gap: 12px; }
+.repeat-row label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gray-600); cursor: pointer; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+.modal-btns button { padding: 7px 15px; border-radius: 6px; border: 1px solid var(--gray-200); cursor: pointer; font-size: 13px; background: #fff; color: var(--gray-800); }
+.modal-btns button:hover { background: var(--gray-50); }
+.modal-btns button.primary { background: var(--red); color: #fff; border-color: var(--red); }
+.modal-btns button.primary:hover { background: var(--red-dark); }
+
+.ev-list-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+.ev-list-item:last-child { border-bottom: none; }
+.ev-list-item .ev-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.ev-list-item .ev-info { flex: 1; min-width: 0; }
+.ev-list-item .ev-name { display: block; }
+.ev-list-item .ev-note { display: block; font-size: 10px; color: var(--gray-400); margin-top: 1px; }
+.ev-list-item .ev-dates { font-size: 10px; color: var(--gray-400); flex-shrink: 0; margin-top: 3px; }
+.ev-list-item button { background: none; border: none; cursor: pointer; color: var(--gray-400); font-size: 15px; padding: 0 2px; flex-shrink: 0; }
+.ev-list-item button:hover { color: #c0392b; }
+.empty-day { font-size: 12px; color: var(--gray-400); padding: 8px 0; }
+
+#manage-list { max-height: 55vh; overflow-y: auto; }
+.manage-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px; }
+.manage-item .mi-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.manage-item .mi-name { flex: 1; }
+.manage-item .mi-date { color: var(--gray-400); font-size: 11px; min-width: 100px; }
+.manage-item .mi-del { background: none; border: none; cursor: pointer; color: var(--gray-400); font-size: 15px; }
+.manage-item .mi-del:hover { color: #c0392b; }
+.search-input { width: 100%; padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; margin-bottom: 10px; outline: none; }
+.search-input:focus { border-color: var(--red); }
+
+.dc.drag-source { opacity: 0.4; }
+.dc.drag-over   { outline: 2px solid var(--red); outline-offset: -2px; z-index: 3; background: #fce8e8 !important; }
+.dc[draggable="true"] { cursor: grab; }
+.dc[draggable="true"]:active { cursor: grabbing; }
+
+#export-area { width:100%; height:80px; font-size:11px; font-family:monospace; resize:none; border:1px solid var(--gray-200); border-radius:6px; padding:6px; background:#fff; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>📅 Plánovač</h1>
+  <div class="year-nav">
+    <button onclick="shiftWindow(-1)">&#8249;</button>
+    <button class="top-btn" style="padding:4px 8px;font-size:11px;" onclick="goToday()">Dnes</button>
+    <button onclick="shiftWindow(1)">&#8250;</button>
+  </div>
+  <div class="legend">
+    <div class="leg" onclick="toggleCat('holiday')"  id="leg-holiday" ><div class="leg-dot" style="background:#c0392b"></div>Svátky</div>
+    <div class="leg" onclick="toggleCat('birthday')" id="leg-birthday"><div class="leg-dot" style="background:#2471a3"></div>Narozeniny</div>
+    <div class="leg" onclick="toggleCat('vacation')" id="leg-vacation"><div class="leg-dot" style="background:#1a7a44"></div>Dovolená</div>
+    <div class="leg" onclick="toggleCat('event')"    id="leg-event"   ><div class="leg-dot" style="background:#b7770d"></div>Události</div>
+  </div>
+  <div id="upcoming-badge"></div>
+  <span id="sync-status">⟳ připojuji...</span>
+  <button class="top-btn" onclick="openAdd()">+ Přidat</button>
+  <button class="top-btn" onclick="openManage()">☰ Správa</button>
+  <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
+  <button class="top-btn" onclick="openExport()">⬇ Export</button>
+</div>
+
+<div id="grid-outer"><div id="planner"></div></div>
+<div class="tooltip" id="tooltip"></div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="add-overlay">
+  <div class="modal">
+    <h2 id="add-title">Přidat událost</h2>
+    <div class="form-row"><label>Název</label><input type="text" id="f-name" placeholder="Název události"></div>
+    <div class="form-row">
+      <label>Datum</label>
+      <div class="date-range">
+        <input type="date" id="f-date-from">
+        <input type="date" id="f-date-to" placeholder="Do (nepovinné)">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Kategorie</label>
+      <select id="f-cat">
+        <option value="holiday">🔴 Svátek</option>
+        <option value="birthday">🔵 Narozeniny</option>
+        <option value="vacation">🟢 Dovolená</option>
+        <option value="event">🟡 Událost</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Poznámka (nepovinné)</label><textarea id="f-note" placeholder="Doplňující informace..."></textarea></div>
+    <div class="form-row">
+      <label>Opakování</label>
+      <div class="repeat-row">
+        <label><input type="radio" name="repeat" value="none"> Jednorázově</label>
+        <label><input type="radio" name="repeat" value="yearly" checked> Každý rok</label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button onclick="closeAdd()">Zrušit</button>
+      <button class="primary" onclick="saveEvent()">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAY DETAIL MODAL -->
+<div class="overlay" id="day-overlay">
+  <div class="modal">
+    <h2 id="day-title">Události dne</h2>
+    <div id="day-list"></div>
+    <div class="modal-btns">
+      <button onclick="closeDay()">Zavřít</button>
+      <button class="primary" onclick="addFromDay()">+ Přidat</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE MODAL -->
+<div class="overlay" id="manage-overlay">
+  <div class="modal" style="width:500px">
+    <h2>Správa událostí</h2>
+    <input class="search-input" type="text" id="search-inp" placeholder="Hledat..." oninput="renderManage()">
+    <div id="manage-list"></div>
+    <div class="modal-btns"><button onclick="closeManage()">Zavřít</button></div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="overlay" id="export-overlay">
+  <div class="modal" style="width:440px">
+    <h2>Export / Import dat</h2>
+    <div class="form-row">
+      <label>Data (JSON)</label>
+      <textarea id="export-area"></textarea>
+    </div>
+    <div class="modal-btns" style="justify-content:space-between;">
+      <div style="display:flex;gap:6px;">
+        <button onclick="downloadJson()">⬇ JSON</button>
+        <button onclick="downloadIcs()">⬇ .ics kalendář</button>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="importJson()">⬆ Importovat</button>
+        <button onclick="closeExport()">Zavřít</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDKSK8S1D7-g_64pXdoZTTUhfKv3_uT6rA",
+  authDomain: "rocni-planovac.firebaseapp.com",
+  projectId: "rocni-planovac",
+  storageBucket: "rocni-planovac.firebasestorage.app",
+  messagingSenderId: "394184038810",
+  appId: "1:394184038810:web:0512621910f23f44128223"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const eventsCol = collection(db, "events");
+
+// ── expose DB functions to global scope ──
+let _remoteEvents = [];
+
+window._dbSave = async function(ev) {
+  await setDoc(doc(db, "events", ev.id), ev);
+};
+window._dbDelete = async function(id) {
+  await deleteDoc(doc(db, "events", id));
+};
+
+// Real-time listener
+const syncEl = document.getElementById('sync-status');
+onSnapshot(eventsCol, (snapshot) => {
+  _remoteEvents = snapshot.docs.map(d => d.data());
+  syncEl.textContent = '● online';
+  syncEl.className = 'ok';
+  render();
+}, (err) => {
+  syncEl.textContent = '● offline';
+  syncEl.className = 'err';
+  console.error(err);
+});
+
+window._getEvents = function() { return _remoteEvents; };
+window._dbReady = true;
+</script>
+
+<script>
+const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
+const CATS = {
+  holiday:  { color: '#c0392b', bg: '#f5b7b1', label: 'Svátek'     },
+  birthday: { color: '#1a5276', bg: '#aed6f1', label: 'Narozeniny' },
+  vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená'   },
+  event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost'     },
+};
+const BUILTIN = [
+  {id:'h1',  name:'Nový rok',          month:1,  day:1,  cat:'holiday', repeat:'yearly'},
+  {id:'h2',  name:'Svátek práce',       month:5,  day:1,  cat:'holiday', repeat:'yearly'},
+  {id:'h3',  name:'Den vítězství',      month:5,  day:8,  cat:'holiday', repeat:'yearly'},
+  {id:'h4',  name:'Cyril a Metoděj',    month:7,  day:5,  cat:'holiday', repeat:'yearly'},
+  {id:'h5',  name:'Jan Hus',            month:7,  day:6,  cat:'holiday', repeat:'yearly'},
+  {id:'h6',  name:'Česká státnost',     month:9,  day:28, cat:'holiday', repeat:'yearly'},
+  {id:'h7',  name:'Vznik ČSR',          month:10, day:28, cat:'holiday', repeat:'yearly'},
+  {id:'h8',  name:'Den svobody',        month:11, day:17, cat:'holiday', repeat:'yearly'},
+  {id:'h9',  name:'Štědrý den',         month:12, day:24, cat:'holiday', repeat:'yearly'},
+  {id:'h10', name:'1. vánoční svátek',  month:12, day:25, cat:'holiday', repeat:'yearly'},
+  {id:'h11', name:'2. vánoční svátek',  month:12, day:26, cat:'holiday', repeat:'yearly'},
+];
+
+function easterSunday(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
+        g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+        l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(y,month-1,day);
+}
+function easterEvents(y){
+  const es=easterSunday(y);
+  const gf=new Date(es); gf.setDate(gf.getDate()-2);
+  const em=new Date(es); em.setDate(em.getDate()+1);
+  return [
+    {id:'egf'+y,name:'Velký pátek',        dateFrom:fmt(gf),dateTo:null,cat:'holiday',repeat:'none'},
+    {id:'eem'+y,name:'Velikonoční pondělí', dateFrom:fmt(em),dateTo:null,cat:'holiday',repeat:'none'},
+  ];
+}
+function fmt(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+function isWeekend(y,m,d){const w=new Date(y,m-1,d).getDay();return w===0||w===6;}
+function todayStr(){return fmt(new Date());}
+function parseDate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function addYears(s,delta){const p=s.split('-');return `${+p[0]+delta}-${p[1]}-${p[2]}`;}
+function isoWeek(y,m,d){
+  const dt=new Date(y,m-1,d);
+  const thu=new Date(dt);thu.setDate(dt.getDate()-((dt.getDay()+6)%7)+3);
+  const ft=new Date(thu.getFullYear(),0,4);ft.setDate(ft.getDate()-((ft.getDay()+6)%7)+3);
+  return 1+Math.round((thu-ft)/604800000);
+}
+
+// ── DATA ACCESS (Firebase or fallback localStorage) ──
+function loadEvents(){
+  if(window._getEvents) return window._getEvents();
+  try{return JSON.parse(localStorage.getItem('planner_v3')||'[]');}catch{return[];}
+}
+async function saveEventsArr(evs){
+  // not used directly — individual ops below
+}
+async function dbSave(ev){
+  if(window._dbSave) await window._dbSave(ev);
+  else { const evs=loadEvents().filter(e=>e.id!==ev.id); evs.push(ev); localStorage.setItem('planner_v3',JSON.stringify(evs)); render(); }
+}
+async function dbDelete(id){
+  if(window._dbDelete) await window._dbDelete(id);
+  else { localStorage.setItem('planner_v3',JSON.stringify(loadEvents().filter(e=>e.id!==id))); render(); }
+}
+
+// ── STATE ──
+const _today=new Date();
+let windowStart={year:_today.getFullYear(),month:_today.getMonth()+1-3};
+while(windowStart.month<1){windowStart.year--;windowStart.month+=12;}
+let hiddenCats=new Set(),editId=null,selectedDateStr=null;
+let dragEventId=null,dragSourceDs=null;
+let darkMode=localStorage.getItem('planner_dark')==='1';
+if(darkMode)document.body.classList.add('dark');
+
+function getWindowMonths(){
+  const cols=[];
+  for(let i=0;i<12;i++){
+    let m=windowStart.month+i,y=windowStart.year;
+    while(m>12){m-=12;y++;}
+    cols.push({year:y,month:m});
+  }
+  return cols;
+}
+function shiftWindow(delta){
+  windowStart.month+=delta;
+  while(windowStart.month<1){windowStart.year--;windowStart.month+=12;}
+  while(windowStart.month>12){windowStart.year++;windowStart.month-=12;}
+  render();
+}
+function goToday(){
+  windowStart={year:_today.getFullYear(),month:_today.getMonth()+1-3};
+  while(windowStart.month<1){windowStart.year--;windowStart.month+=12;}
+  render();
+}
+
+function expandEvent(ev,y){
+  let from=ev.dateFrom,to=ev.dateTo||ev.dateFrom;
+  if(ev.repeat==='yearly'){const o=parseInt(from.split('-')[0]);from=addYears(from,y-o);to=addYears(to,y-o);}
+  if(from>(y+'-12-31')||to<(y+'-01-01'))return[];
+  const dates=[];let cur=parseDate(from);const end=parseDate(to);
+  while(cur<=end){const ds=fmt(cur);if(ds>=(y+'-01-01')&&ds<=(y+'-12-31'))dates.push(ds);cur.setDate(cur.getDate()+1);}
+  return dates;
+}
+
+function buildDateMap(years){
+  const map={};
+  years.forEach(y=>{
+    const allEvs=[
+      ...BUILTIN.map(e=>({...e,dateFrom:`${y}-${String(e.month).padStart(2,'0')}-${String(e.day).padStart(2,'0')}`,dateTo:null})),
+      ...easterEvents(y),
+      ...loadEvents(),
+    ];
+    allEvs.forEach(ev=>{
+      if(hiddenCats.has(ev.cat))return;
+      const dates=expandEvent(ev,y);
+      if(!dates.length)return;
+      const fromDs=dates[0],toDs=dates[dates.length-1];
+      dates.forEach(ds=>{
+        if(!map[ds])map[ds]=[];
+        map[ds].push({ev,isStart:ds===fromDs,isEnd:ds===toDs,isOnly:dates.length===1});
+      });
+    });
+  });
+  return map;
+}
+
+function cellGradient(colors){
+  if(!colors.length)return'';
+  if(colors.length===1)return colors[0];
+  const pct=100/colors.length,stops=[];
+  colors.forEach((c,i)=>{stops.push(`${c} ${Math.round(i*pct)}%`);stops.push(`${c} ${Math.round((i+1)*pct)}%`);});
+  return`linear-gradient(to right, ${stops.join(', ')})`;
+}
+
+function updateUpcomingBadge(){
+  const evs=loadEvents();
+  const now=new Date();now.setHours(0,0,0,0);
+  let nearest=null,nearestDays=999;
+  evs.forEach(ev=>{
+    for(let dy=1;dy<=366;dy++){
+      const check=new Date(now);check.setDate(now.getDate()+dy);
+      const y=check.getFullYear(),ds=fmt(check);
+      let from=ev.dateFrom;
+      if(ev.repeat==='yearly')from=addYears(from,y-parseInt(from.split('-')[0]));
+      if(ds===from&&dy<nearestDays){nearestDays=dy;nearest=ev;break;}
+    }
+  });
+  const badge=document.getElementById('upcoming-badge');
+  badge.innerHTML=nearest?`Nejbližší: <span>${nearest.name}</span> za ${nearestDays} d`:'';
+}
+
+const tooltipEl=document.getElementById('tooltip');
+function showTooltip(e,entries){
+  if(!entries||!entries.length){hideTooltip();return;}
+  tooltipEl.innerHTML=entries.map(({ev})=>{
+    const cat=CATS[ev.cat]||CATS.event;
+    const dot=`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.bg};border:1px solid ${cat.color};margin-right:5px;vertical-align:middle;"></span>`;
+    let t=dot+'<b>'+ev.name+'</b>';
+    if(ev.note)t+=`<br><span style="opacity:0.7;font-size:10px;padding-left:13px;">${ev.note}</span>`;
+    if(ev.dateTo){const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');t+=`<br><span style="opacity:0.55;font-size:10px;padding-left:13px;">${fp[2]}.${fp[1]}. – ${tp[2]}.${tp[1]}.</span>`;}
+    return t;
+  }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:4px 0;">');
+  tooltipEl.classList.add('show');
+  posTooltip(e);
+}
+function posTooltip(e){
+  tooltipEl.style.left=Math.min(e.clientX+14,window.innerWidth-240)+'px';
+  tooltipEl.style.top=Math.min(e.clientY+14,window.innerHeight-120)+'px';
+}
+function hideTooltip(){tooltipEl.classList.remove('show');}
+
+function render(){
+  const cols=getWindowMonths();
+  const todayS=todayStr();
+  const nowM=_today.getMonth()+1,nowY=_today.getFullYear();
+  const years=[...new Set(cols.map(c=>c.year))];
+  const dateMap=buildDateMap(years);
+  const p=document.getElementById('planner');
+  p.innerHTML='';
+
+  const corner=el('div','mh corner');p.appendChild(corner);
+  cols.forEach(({year,month},ci)=>{
+    const h=el('div','mh');
+    if(year===nowY&&month===nowM)h.classList.add('cur-month');
+    const prevYear=ci>0?cols[ci-1].year:null;
+    h.innerHTML=MONTHS_SHORT[month-1]+(!prevYear||prevYear!==year?`<span class="mh-year">${year}</span>`:'');
+    p.appendChild(h);
+  });
+
+  for(let d=1;d<=31;d++){
+    const firstValid=cols.find(c=>d<=daysInMonth(c.year,c.month));
+    const rn=el('div','rn');
+    if(firstValid){const wk=isoWeek(firstValid.year,firstValid.month,d);rn.innerHTML=`${d}<span class="wk">T${wk}</span>`;}
+    else rn.textContent=d;
+    p.appendChild(rn);
+
+    cols.forEach(({year,month},ci)=>{
+      if(d>daysInMonth(year,month)){
+        const emp=el('div','dc empty');if(ci===0)emp.classList.add('month-sep');p.appendChild(emp);return;
+      }
+      const ds=`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isCurCol=(year===nowY&&month===nowM);
+      let cls='dc';
+      if(isWeekend(year,month,d))cls+=' wknd';
+      if(ds===todayS)cls+=' today';
+      if(isCurCol)cls+=' cur-col';
+      if(ci===0)cls+=' month-sep';
+
+      const cell=el('div',cls);
+      const entries=dateMap[ds]||[];
+
+      if(entries.length>0){
+        const seen=[];
+        entries.forEach(({ev})=>{if(!seen.includes(ev.cat))seen.push(ev.cat);});
+        const colors=seen.map(c=>CATS[c]?.bg||'#eee');
+        const bg=el('div','cell-bg');
+        bg.style.background=cellGradient(colors);
+        if(isWeekend(year,month,d))bg.style.opacity='0.9';
+        cell.appendChild(bg);
+        const labels=el('div','cell-labels');
+        entries.filter(e=>e.isStart||e.isOnly).forEach(({ev})=>{
+          const cat=CATS[ev.cat]||CATS.event;
+          const lbl=el('div','cell-label');
+          lbl.style.color=cat.color;lbl.textContent=ev.name;
+          labels.appendChild(lbl);
+        });
+        cell.appendChild(labels);
+      }
+
+      cell.addEventListener('click',()=>openDay(ds,d,month,year));
+      cell.addEventListener('mouseenter',e=>showTooltip(e,entries.length?entries:null));
+      cell.addEventListener('mousemove',posTooltip);
+      cell.addEventListener('mouseleave',hideTooltip);
+
+      const userEntries=entries.filter(e=>e.ev.id&&e.ev.id.startsWith('u_'));
+      if(userEntries.length>0){
+        cell.setAttribute('draggable','true');
+        cell.addEventListener('dragstart',e=>{
+          const pick=userEntries.find(e=>e.isStart||e.isOnly)||userEntries[0];
+          dragEventId=pick.ev.id;dragSourceDs=ds;
+          e.dataTransfer.effectAllowed='move';
+          e.dataTransfer.setData('text/plain',dragEventId);
+          setTimeout(()=>cell.classList.add('drag-source'),0);
+        });
+        cell.addEventListener('dragend',()=>{cell.classList.remove('drag-source');dragEventId=null;dragSourceDs=null;});
+      }
+      cell.addEventListener('dragover',e=>{if(!dragEventId)return;e.preventDefault();cell.classList.add('drag-over');});
+      cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));
+      cell.addEventListener('drop',e=>{
+        e.preventDefault();cell.classList.remove('drag-over');
+        if(!dragEventId||dragSourceDs===ds)return;
+        moveEvent(dragEventId,dragSourceDs,ds);
+      });
+
+      p.appendChild(cell);
+    });
+  }
+  updateUpcomingBadge();
+}
+
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+function toggleCat(cat){hiddenCats.has(cat)?hiddenCats.delete(cat):hiddenCats.add(cat);document.getElementById('leg-'+cat).classList.toggle('off');render();}
+function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);document.getElementById('dark-btn').textContent=darkMode?'☀️':'🌙';localStorage.setItem('planner_dark',darkMode?'1':'0');}
+if(darkMode)document.getElementById('dark-btn').textContent='☀️';
+
+function openAdd(ds){
+  editId=null;
+  document.getElementById('add-title').textContent='Přidat událost';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-date-from').value=ds||'';
+  document.getElementById('f-date-to').value='';
+  document.getElementById('f-cat').value='event';
+  document.getElementById('f-note').value='';
+  document.querySelector('input[name=repeat][value=yearly]').checked=true;
+  document.getElementById('add-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),50);
+}
+function openEdit(id){
+  closeDay();
+  const ev=loadEvents().find(e=>e.id===id);if(!ev)return;
+  editId=id;
+  document.getElementById('add-title').textContent='Upravit událost';
+  document.getElementById('f-name').value=ev.name;
+  document.getElementById('f-date-from').value=ev.dateFrom;
+  document.getElementById('f-date-to').value=ev.dateTo||'';
+  document.getElementById('f-cat').value=ev.cat;
+  document.getElementById('f-note').value=ev.note||'';
+  document.querySelector(`input[name=repeat][value=${ev.repeat||'yearly'}]`).checked=true;
+  document.getElementById('add-overlay').classList.add('open');
+}
+function closeAdd(){document.getElementById('add-overlay').classList.remove('open');}
+async function saveEvent(){
+  const name=document.getElementById('f-name').value.trim();
+  const dateFrom=document.getElementById('f-date-from').value;
+  const dateTo=document.getElementById('f-date-to').value||null;
+  const cat=document.getElementById('f-cat').value;
+  const note=document.getElementById('f-note').value.trim()||null;
+  const repeat=document.querySelector('input[name=repeat]:checked').value;
+  if(!name||!dateFrom){alert('Vyplň název a datum od.');return;}
+  if(dateTo&&dateTo<dateFrom){alert('Datum Do musí být stejné nebo pozdější.');return;}
+  const ev=editId
+    ? {...loadEvents().find(e=>e.id===editId), name, dateFrom, dateTo, cat, note, repeat}
+    : {id:'u_'+Date.now(), name, dateFrom, dateTo, cat, note, repeat};
+  await dbSave(ev);
+  closeAdd();
+}
+
+function openDay(ds,d,m,y){
+  selectedDateStr=ds;
+  document.getElementById('day-title').textContent=`${d}. ${MONTHS[m-1]} ${y}`;
+  renderDayList(ds);
+  document.getElementById('day-overlay').classList.add('open');
+}
+function renderDayList(ds){
+  const y=parseInt(ds.split('-')[0]);
+  const dateMap=buildDateMap([y]);
+  const entries=dateMap[ds]||[];
+  const list=document.getElementById('day-list');
+  list.innerHTML='';
+  if(!entries.length){const e=el('div','empty-day');e.textContent='Žádné události';list.appendChild(e);return;}
+  entries.forEach(({ev})=>{
+    const cat=CATS[ev.cat]||CATS.event;
+    const item=el('div','ev-list-item');
+    const dot=el('div','ev-dot');dot.style.background=cat.bg;dot.style.border='2px solid '+cat.color;item.appendChild(dot);
+    const info=el('div','ev-info');
+    const nm=el('span','ev-name');nm.textContent=ev.name+(ev.repeat==='yearly'?' ↻':'');info.appendChild(nm);
+    if(ev.note){const nt=el('span','ev-note');nt.textContent=ev.note;info.appendChild(nt);}
+    item.appendChild(info);
+    if(ev.dateTo){
+      const dt=el('span','ev-dates');
+      const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');
+      dt.textContent=fp[2]+'.'+fp[1]+'. – '+tp[2]+'.'+tp[1]+'.';item.appendChild(dt);
+    }
+    if(ev.id&&ev.id.startsWith('u_')){
+      const ed=el('button','');ed.textContent='✏';ed.title='Upravit';ed.onclick=()=>openEdit(ev.id);item.appendChild(ed);
+      const dl=el('button','');dl.textContent='×';dl.title='Smazat';
+      dl.onclick=async()=>{await dbDelete(ev.id);renderDayList(ds);};item.appendChild(dl);
+    }
+    list.appendChild(item);
+  });
+}
+function closeDay(){document.getElementById('day-overlay').classList.remove('open');selectedDateStr=null;}
+function addFromDay(){const ds=selectedDateStr;closeDay();openAdd(ds);}
+
+async function moveEvent(id,fromDs,toDs){
+  const ev=loadEvents().find(e=>e.id===id);if(!ev)return;
+  const delta=Math.round((parseDate(toDs)-parseDate(fromDs))/86400000);
+  function sh(ds,d){const dt=parseDate(ds);dt.setDate(dt.getDate()+d);return fmt(dt);}
+  await dbSave({...ev,dateFrom:sh(ev.dateFrom,delta),dateTo:ev.dateTo?sh(ev.dateTo,delta):null});
+}
+
+function openManage(){document.getElementById('search-inp').value='';renderManage();document.getElementById('manage-overlay').classList.add('open');}
+function closeManage(){document.getElementById('manage-overlay').classList.remove('open');}
+function renderManage(){
+  const q=document.getElementById('search-inp').value.toLowerCase();
+  const evs=loadEvents().filter(e=>e.id&&e.id.startsWith('u_')).filter(e=>!q||e.name.toLowerCase().includes(q));
+  const list=document.getElementById('manage-list');
+  list.innerHTML='';
+  if(!evs.length){list.innerHTML='<p style="font-size:12px;color:#9a9790;padding:8px 0;">Žádné vlastní události</p>';return;}
+  evs.forEach(ev=>{
+    const cat=CATS[ev.cat]||CATS.event;
+    const item=el('div','manage-item');
+    const dot=el('div','mi-dot');dot.style.background=cat.color;item.appendChild(dot);
+    const nm=el('span','mi-name');nm.textContent=ev.name;item.appendChild(nm);
+    const dt=el('span','mi-date');
+    const fp=ev.dateFrom.split('-');
+    let tx=fp[2]+'.'+fp[1]+'.'+fp[0];
+    if(ev.dateTo){const tp=ev.dateTo.split('-');tx+=' – '+tp[2]+'.'+tp[1]+'.'+tp[0];}
+    if(ev.repeat==='yearly')tx+=' ↻';
+    dt.textContent=tx;item.appendChild(dt);
+    const ed=el('button','mi-del');ed.textContent='✏';ed.style.fontSize='13px';ed.onclick=()=>{closeManage();openEdit(ev.id);};item.appendChild(ed);
+    const dl=el('button','mi-del');dl.textContent='×';dl.onclick=async()=>{await dbDelete(ev.id);renderManage();render();};item.appendChild(dl);
+    list.appendChild(item);
+  });
+}
+
+function openExport(){
+  document.getElementById('export-area').value=JSON.stringify(loadEvents().filter(e=>e.id&&e.id.startsWith('u_')),null,2);
+  document.getElementById('export-overlay').classList.add('open');
+}
+function closeExport(){document.getElementById('export-overlay').classList.remove('open');}
+function downloadJson(){
+  const blob=new Blob([JSON.stringify(loadEvents().filter(e=>e.id&&e.id.startsWith('u_')),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='planovac-export.json';a.click();
+}
+async function importJson(){
+  const text=document.getElementById('export-area').value.trim();
+  try{
+    const data=JSON.parse(text);
+    if(!Array.isArray(data))throw new Error();
+    if(!confirm(`Importovat ${data.length} událostí?`))return;
+    for(const ev of data) await dbSave(ev);
+    closeExport();
+  }catch{alert('Neplatný JSON formát.');}
+}
+function downloadIcs(){
+  const evs=loadEvents().filter(e=>e.id&&e.id.startsWith('u_'));
+  const years=[...new Set(getWindowMonths().map(c=>c.year))];
+  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Planovac//CS\r\n';
+  evs.forEach(ev=>{
+    years.forEach(y=>{
+      let from=ev.dateFrom,to=ev.dateTo||ev.dateFrom;
+      if(ev.repeat==='yearly'){const o=parseInt(from.split('-')[0]);from=addYears(from,y-o);to=addYears(to,y-o);}
+      else if(!from.startsWith(y+'-'))return;
+      const dtS=from.replace(/-/g,'');
+      const dtE=(()=>{const d=parseDate(to);d.setDate(d.getDate()+1);return fmt(d).replace(/-/g,'');})();
+      ics+=`BEGIN:VEVENT\r\nUID:${ev.id}-${y}@planovac\r\nDTSTART;VALUE=DATE:${dtS}\r\nDTEND;VALUE=DATE:${dtE}\r\nSUMMARY:${ev.name}\r\n`;
+      if(ev.note)ics+=`DESCRIPTION:${ev.note}\r\n`;
+      ics+='END:VEVENT\r\n';
+    });
+  });
+  ics+='END:VCALENDAR';
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='planovac.ics';a.click();
+}
+
+['add-overlay','day-overlay','manage-overlay','export-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if(e.altKey&&e.key==='ArrowLeft')shiftWindow(-1);
+  if(e.altKey&&e.key==='ArrowRight')shiftWindow(1);
+  if(e.altKey&&e.key==='t')goToday();
+});
+
+render();
+</script>
+</body>
+</html>
