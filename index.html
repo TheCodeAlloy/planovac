@@ -336,10 +336,10 @@ body.dark #ctx-menu button:hover { background: #333; }
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
   <div class="ctx-header" id="ctx-title">Událost</div>
-  <button onclick="ctxEdit()">✏️ Upravit</button>
-  <button onclick="ctxCopy()">📋 Kopírovat</button>
+  <button onmousedown="ctxEdit()">✏️ Upravit</button>
+  <button onmousedown="ctxCopy()">📋 Kopírovat</button>
   <div class="ctx-sep"></div>
-  <button class="danger" onclick="ctxDelete()">🗑 Smazat</button>
+  <button class="danger" onmousedown="ctxDelete()">🗑 Smazat</button>
 </div>
 
 <script type="module">
@@ -840,7 +840,7 @@ function openCtxMenu(e, entries, ds) {
 }
 function closeCtxMenu() { ctxMenu.classList.remove('open'); ctxEventId = null; ctxDateStr = null; }
 function ctxEdit()   { closeCtxMenu(); openEdit(ctxEventId); }
-function ctxDelete() { closeCtxMenu(); dbDelete(ctxEventId); }
+async function ctxDelete() { const id=ctxEventId; closeCtxMenu(); await dbDelete(id); }
 async function ctxCopy() {
   const ev = loadEvents().find(e => e.id === ctxEventId);
   closeCtxMenu();
@@ -857,7 +857,7 @@ async function ctxCopy() {
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(() => document.getElementById('f-name').focus(), 50);
 }
-document.addEventListener('click', e => { if (!ctxMenu.contains(e.target)) closeCtxMenu(); });
+document.addEventListener('mousedown', e => { if (!ctxMenu.contains(e.target)) closeCtxMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
 
 // ── PIN ──
