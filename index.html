@@ -75,15 +75,14 @@ body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
   font-size: 10px; color: var(--gray-400); display: flex; flex-direction: column; align-items: center; justify-content: center;
   font-weight: 500; position: sticky; left: 0; z-index: 5; gap: 1px;
 }
-.rn .wk { font-size: 8px; color: var(--gray-200); font-weight: 400; }
 
 .dc {
   border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200);
   min-height: 24px; cursor: pointer; position: relative; overflow: hidden;
 }
 .dc.empty { background: var(--gray-100); cursor: default; }
-.dc.today { outline: 2px solid #1c1c1c; outline-offset: -2px; z-index: 2; }
-body.dark .dc.today { outline-color: #fff; }
+.dc.today { outline: 1px solid rgba(100,100,100,0.35); outline-offset: -1px; z-index: 2; }
+body.dark .dc.today { outline-color: rgba(255,255,255,0.25); }
 .dc.cur-col { background: var(--cur-col-bg); }
 .dc.wknd { background: #e8e8e8; }
 body.dark .dc.wknd { background: #1e1d1c; }
@@ -91,9 +90,35 @@ body.dark .dc.wknd { background: #1e1d1c; }
 .dc.month-sep { border-left: 2px solid #c0bdb8; }
 body.dark .dc.month-sep { border-left-color: #4a4846; }
 .dc .cell-bg { position: absolute; inset: 0; pointer-events: none; }
-.dc .cell-labels { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; }
-.dc .cell-label { font-size: 10px; line-height: 13px; padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.dc .cell-labels { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+.dc .cell-strip { display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
+.dc .cell-label { font-size: 10px; line-height: 12px; padding: 1px 3px; overflow: hidden; text-overflow: ellipsis; font-weight: 600; width: 100%; text-align: center; word-break: break-word; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .dc:not(.empty):hover .cell-bg { filter: brightness(0.92); }
+.dc:not(.empty):hover .cell-strip { filter: brightness(0.92); }
+
+/* CONTEXT MENU */
+#ctx-menu {
+  position: fixed; z-index: 1000; background: #fff; border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18); padding: 5px 0; min-width: 170px;
+  display: none; font-size: 13px;
+}
+body.dark #ctx-menu { background: #2a2928; }
+#ctx-menu.open { display: block; }
+#ctx-menu .ctx-header {
+  padding: 6px 14px 5px; font-size: 11px; color: var(--gray-400);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--gray-100); margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;
+}
+#ctx-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 14px; background: none; border: none; cursor: pointer;
+  color: var(--gray-800); font-size: 13px; text-align: left;
+}
+#ctx-menu button:hover { background: var(--gray-50); }
+body.dark #ctx-menu button:hover { background: #333; }
+#ctx-menu button.danger { color: #c0392b; }
+#ctx-menu .ctx-sep { height: 1px; background: var(--gray-100); margin: 3px 0; }
 
 .tooltip {
   position: fixed; z-index: 999; background: #1c1c1c; color: #fff;
@@ -149,9 +174,60 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
 .dc[draggable="true"]:active { cursor: grabbing; }
 
 #export-area { width:100%; height:80px; font-size:11px; font-family:monospace; resize:none; border:1px solid var(--gray-200); border-radius:6px; padding:6px; background:#fff; }
+
+/* PIN SCREEN */
+#pin-screen {
+  position: fixed; inset: 0; background: #1c1c1c;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; flex-direction: column; gap: 18px;
+}
+#pin-screen h2 { color: #fff; font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
+#pin-screen .pin-subtitle { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: -10px; }
+#pin-dots { display: flex; gap: 12px; }
+#pin-dots span {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3); background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+#pin-dots span.filled { background: #c0392b; border-color: #c0392b; }
+#pin-dots span.error  { background: #e74c3c; border-color: #e74c3c; }
+#pin-keypad { display: grid; grid-template-columns: repeat(3, 64px); gap: 10px; }
+#pin-keypad button {
+  height: 64px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.07); color: #fff; font-size: 22px; font-weight: 400;
+  cursor: pointer; transition: background 0.1s; font-family: var(--font);
+}
+#pin-keypad button:hover  { background: rgba(255,255,255,0.15); }
+#pin-keypad button:active { background: rgba(255,255,255,0.25); }
+#pin-keypad button.del { font-size: 16px; color: rgba(255,255,255,0.5); }
+#pin-error { color: #e74c3c; font-size: 12px; height: 16px; text-align: center; }
 </style>
 </head>
 <body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <h2>📅 Roční plánovač</h2>
+  <p class="pin-subtitle">Zadejte PIN pro přístup</p>
+  <div id="pin-dots">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div id="pin-keypad">
+    <button onclick="pinKey('1')">1</button>
+    <button onclick="pinKey('2')">2</button>
+    <button onclick="pinKey('3')">3</button>
+    <button onclick="pinKey('4')">4</button>
+    <button onclick="pinKey('5')">5</button>
+    <button onclick="pinKey('6')">6</button>
+    <button onclick="pinKey('7')">7</button>
+    <button onclick="pinKey('8')">8</button>
+    <button onclick="pinKey('9')">9</button>
+    <button onclick="pinKey('')" style="visibility:hidden"></button>
+    <button onclick="pinKey('0')">0</button>
+    <button class="del" onclick="pinDel()">⌫</button>
+  </div>
+  <div id="pin-error"></div>
+</div>
 
 <div id="topbar">
   <h1>📅 Plánovač</h1>
@@ -202,8 +278,8 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
     <div class="form-row">
       <label>Opakování</label>
       <div class="repeat-row">
-        <label><input type="radio" name="repeat" value="none"> Jednorázově</label>
-        <label><input type="radio" name="repeat" value="yearly" checked> Každý rok</label>
+        <label><input type="radio" name="repeat" value="none" checked> Jednorázově</label>
+        <label><input type="radio" name="repeat" value="yearly"> Každý rok</label>
       </div>
     </div>
     <div class="modal-btns">
@@ -257,6 +333,15 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
 </div>
 
 <!-- Firebase SDK -->
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-header" id="ctx-title">Událost</div>
+  <button onclick="ctxEdit()">✏️ Upravit</button>
+  <button onclick="ctxCopy()">📋 Kopírovat</button>
+  <div class="ctx-sep"></div>
+  <button class="danger" onclick="ctxDelete()">🗑 Smazat</button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
@@ -497,8 +582,7 @@ function render(){
   for(let d=1;d<=31;d++){
     const firstValid=cols.find(c=>d<=daysInMonth(c.year,c.month));
     const rn=el('div','rn');
-    if(firstValid){const wk=isoWeek(firstValid.year,firstValid.month,d);rn.innerHTML=`${d}<span class="wk">T${wk}</span>`;}
-    else rn.textContent=d;
+    rn.textContent=d;
     p.appendChild(rn);
 
     cols.forEach(({year,month},ci)=>{
@@ -517,24 +601,28 @@ function render(){
       const entries=dateMap[ds]||[];
 
       if(entries.length>0){
-        const seen=[];
-        entries.forEach(({ev})=>{if(!seen.includes(ev.cat))seen.push(ev.cat);});
-        const colors=seen.map(c=>CATS[c]?.bg||'#eee');
-        const bg=el('div','cell-bg');
-        bg.style.background=cellGradient(colors);
-        if(isWeekend(year,month,d))bg.style.opacity='0.9';
-        cell.appendChild(bg);
-        const labels=el('div','cell-labels');
-        entries.filter(e=>e.isStart||e.isOnly).forEach(({ev})=>{
+        // One column-strip per event
+        const n=entries.length;
+        const pct=100/n;
+        entries.forEach(({ev,isStart,isOnly},i)=>{
           const cat=CATS[ev.cat]||CATS.event;
-          const lbl=el('div','cell-label');
-          lbl.style.color=cat.color;lbl.textContent=ev.name;
-          labels.appendChild(lbl);
+          const strip=el('div','cell-strip');
+          strip.style.cssText=`position:absolute;top:0;bottom:0;left:${i*pct}%;width:${pct}%;background:${cat.bg};${isWeekend(year,month,d)?'opacity:0.9;':''}`;
+          // Add vertical separator between strips
+          if(i>0) strip.style.borderLeft='1px solid rgba(255,255,255,0.5)';
+          // Show label only on start day or single-day events
+          if(isStart||isOnly){
+            const lbl=el('div','cell-label');
+            lbl.style.color=cat.color;
+            lbl.textContent=ev.name;
+            strip.appendChild(lbl);
+          }
+          cell.appendChild(strip);
         });
-        cell.appendChild(labels);
       }
 
       cell.addEventListener('click',()=>openDay(ds,d,month,year));
+      cell.addEventListener('contextmenu',e=>{ if(entries.length) openCtxMenu(e,entries,ds); });
       cell.addEventListener('mouseenter',e=>showTooltip(e,entries.length?entries:null));
       cell.addEventListener('mousemove',posTooltip);
       cell.addEventListener('mouseleave',hideTooltip);
@@ -578,7 +666,7 @@ function openAdd(ds){
   document.getElementById('f-date-to').value='';
   document.getElementById('f-cat').value='event';
   document.getElementById('f-note').value='';
-  document.querySelector('input[name=repeat][value=yearly]').checked=true;
+  document.querySelector('input[name=repeat][value=none]').checked=true;
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(),50);
 }
@@ -730,6 +818,84 @@ document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='ArrowRight')shiftWindow(1);
   if(e.altKey&&e.key==='t')goToday();
 });
+
+// ── CONTEXT MENU ──
+const ctxMenu = document.getElementById('ctx-menu');
+let ctxEventId = null;
+let ctxDateStr = null;
+
+function openCtxMenu(e, entries, ds) {
+  e.preventDefault();
+  const userEv = entries.find(en => en.ev.id && en.ev.id.startsWith('u_'));
+  if (!userEv) return;
+  ctxEventId = userEv.ev.id;
+  ctxDateStr = ds;
+  document.getElementById('ctx-title').textContent = userEv.ev.name;
+  ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 185) + 'px';
+  ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+  ctxMenu.classList.add('open');
+}
+function closeCtxMenu() { ctxMenu.classList.remove('open'); ctxEventId = null; ctxDateStr = null; }
+function ctxEdit()   { closeCtxMenu(); openEdit(ctxEventId); }
+function ctxDelete() { closeCtxMenu(); dbDelete(ctxEventId); }
+async function ctxCopy() {
+  const ev = loadEvents().find(e => e.id === ctxEventId);
+  closeCtxMenu();
+  if (!ev) return;
+  // Open add modal pre-filled with copied data, new id
+  editId = null;
+  document.getElementById('add-title').textContent = 'Kopírovat událost';
+  document.getElementById('f-name').value = ev.name + ' (kopie)';
+  document.getElementById('f-date-from').value = ev.dateFrom;
+  document.getElementById('f-date-to').value = ev.dateTo || '';
+  document.getElementById('f-cat').value = ev.cat;
+  document.getElementById('f-note').value = ev.note || '';
+  document.querySelector(`input[name=repeat][value=${ev.repeat||'none'}]`).checked = true;
+  document.getElementById('add-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 50);
+}
+document.addEventListener('click', e => { if (!ctxMenu.contains(e.target)) closeCtxMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
+
+// ── PIN ──
+const CORRECT_PIN = '1234'; // ← ZDE ZMĚŇTE PIN
+const SESSION_KEY = 'planner_unlocked';
+let pinEntry = '';
+
+function pinKey(digit) {
+  if (!digit || pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updatePinDots();
+  if (pinEntry.length === 4) checkPin();
+}
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+function updatePinDots(state) {
+  document.querySelectorAll('#pin-dots span').forEach((s, i) => {
+    s.className = state || (i < pinEntry.length ? 'filled' : '');
+  });
+}
+function checkPin() {
+  if (pinEntry === CORRECT_PIN) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('pin-screen').style.display = 'none';
+  } else {
+    updatePinDots('error');
+    document.getElementById('pin-error').textContent = 'Nesprávný PIN';
+    setTimeout(() => { pinEntry = ''; updatePinDots(); document.getElementById('pin-error').textContent = ''; }, 1000);
+  }
+}
+document.addEventListener('keydown', e => {
+  if (document.getElementById('pin-screen').style.display === 'none') return;
+  if (e.key >= '0' && e.key <= '9') pinKey(e.key);
+  if (e.key === 'Backspace') pinDel();
+});
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  document.getElementById('pin-screen').style.display = 'none';
+}
 
 render();
 </script>
