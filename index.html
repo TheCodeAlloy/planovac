@@ -825,6 +825,7 @@ document.addEventListener('keydown',e=>{
 // ── CONTEXT MENU ──
 const ctxMenu = document.getElementById('ctx-menu');
 let ctxEventId = null;
+let ctxEventData = null;
 let ctxDateStr = null;
 
 function openCtxMenu(e, entries, ds) {
@@ -832,20 +833,34 @@ function openCtxMenu(e, entries, ds) {
   const userEv = entries.find(en => en.ev.id && en.ev.id.startsWith('u_'));
   if (!userEv) return;
   ctxEventId = userEv.ev.id;
+  ctxEventData = userEv.ev;
   ctxDateStr = ds;
   document.getElementById('ctx-title').textContent = userEv.ev.name;
   ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 185) + 'px';
   ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 160) + 'px';
   ctxMenu.classList.add('open');
 }
-function closeCtxMenu() { ctxMenu.classList.remove('open'); ctxEventId = null; ctxDateStr = null; }
-function ctxEdit()   { closeCtxMenu(); openEdit(ctxEventId); }
-async function ctxDelete() { const id=ctxEventId; closeCtxMenu(); await dbDelete(id); }
-async function ctxCopy() {
-  const ev = loadEvents().find(e => e.id === ctxEventId);
+function closeCtxMenu() { ctxMenu.classList.remove('open'); ctxEventId = null; ctxEventData = null; ctxDateStr = null; }
+function ctxEdit() {
+  const ev = ctxEventData;
   closeCtxMenu();
   if (!ev) return;
-  // Open add modal pre-filled with copied data, new id
+  editId = ev.id;
+  document.getElementById('add-title').textContent = 'Upravit událost';
+  document.getElementById('f-name').value = ev.name;
+  document.getElementById('f-date-from').value = ev.dateFrom;
+  document.getElementById('f-date-to').value = ev.dateTo || '';
+  document.getElementById('f-cat').value = ev.cat;
+  document.getElementById('f-note').value = ev.note || '';
+  document.querySelector(`input[name=repeat][value=${ev.repeat||'none'}]`).checked = true;
+  document.getElementById('add-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 50);
+}
+async function ctxDelete() { const id=ctxEventId; closeCtxMenu(); await dbDelete(id); }
+async function ctxCopy() {
+  const ev = ctxEventData;
+  closeCtxMenu();
+  if (!ev) return;
   editId = null;
   document.getElementById('add-title').textContent = 'Kopírovat událost';
   document.getElementById('f-name').value = ev.name;
