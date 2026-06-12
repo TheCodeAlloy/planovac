@@ -636,7 +636,7 @@ function render(){
       }
 
       cell.addEventListener('click',()=>openDay(ds,d,month,year));
-      cell.addEventListener('contextmenu',e=>{ if(entries.length) openCtxMenu(e,entries,ds); });
+      cell.addEventListener('contextmenu',e=>{ if(entries.length) openCtxMenu(e,entries,ds,cell); });
       cell.addEventListener('mouseenter',e=>showTooltip(e,entries.length?entries:null));
       cell.addEventListener('mousemove',posTooltip);
       cell.addEventListener('mouseleave',hideTooltip);
@@ -828,14 +828,33 @@ let ctxEventId = null;
 let ctxEventData = null;
 let ctxDateStr = null;
 
-function openCtxMenu(e, entries, ds) {
+function openCtxMenu(e, entries, ds, cell) {
   e.preventDefault();
-  const userEv = entries.find(en => en.ev.id && en.ev.id.startsWith('u_'));
-  if (!userEv) return;
-  ctxEventId = userEv.ev.id;
-  ctxEventData = userEv.ev;
+  const userEntries = entries.filter(en => en.ev.id && en.ev.id.startsWith('u_'));
+  if (!userEntries.length) return;
+
+  // Figure out which strip was clicked based on horizontal position in cell
+  let pickedEntry = userEntries[0];
+  const rect = cell.getBoundingClientRect();
+  const relX = (e.clientX - rect.left) / rect.width; // 0..1
+  const n = entries.length;
+  const clickedIndex = Math.min(Math.floor(relX * n), n - 1);
+  const clickedEntry = entries[clickedIndex];
+  if (clickedEntry && clickedEntry.ev.id && clickedEntry.ev.id.startsWith('u_')) {
+    pickedEntry = clickedEntry;
+  }
+  const relX = (e.clientX - rect.left) / rect.width; // 0..1
+  const n = entries.length;
+  const clickedIndex = Math.min(Math.floor(relX * n), n - 1);
+  const clickedEntry = entries[clickedIndex];
+  if (clickedEntry && clickedEntry.ev.id && clickedEntry.ev.id.startsWith('u_')) {
+    pickedEntry = clickedEntry;
+  }
+
+  ctxEventId = pickedEntry.ev.id;
+  ctxEventData = pickedEntry.ev;
   ctxDateStr = ds;
-  document.getElementById('ctx-title').textContent = userEv.ev.name;
+  document.getElementById('ctx-title').textContent = pickedEntry.ev.name;
   ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 185) + 'px';
   ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 160) + 'px';
   ctxMenu.classList.add('open');
