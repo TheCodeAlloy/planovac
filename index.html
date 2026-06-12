@@ -238,7 +238,7 @@ body.dark #ctx-menu button:hover { background: #333; }
   </div>
   <div class="legend">
     <div class="leg" onclick="toggleCat('holiday')"  id="leg-holiday" ><div class="leg-dot" style="background:#c0392b"></div>Svátky</div>
-    <div class="leg" onclick="toggleCat('birthday')" id="leg-birthday"><div class="leg-dot" style="background:#2471a3"></div>Narozeniny</div>
+    <div class="leg" onclick="toggleCat('birthday')" id="leg-birthday"><div class="leg-dot" style="background:#9b59b6"></div>Nar/Sv</div>
     <div class="leg" onclick="toggleCat('vacation')" id="leg-vacation"><div class="leg-dot" style="background:#1a7a44"></div>Dovolená</div>
     <div class="leg" onclick="toggleCat('event')"    id="leg-event"   ><div class="leg-dot" style="background:#b7770d"></div>Události</div>
   </div>
@@ -267,9 +267,9 @@ body.dark #ctx-menu button:hover { background: #333; }
     </div>
     <div class="form-row">
       <label>Kategorie</label>
-      <select id="f-cat">
+      <select id="f-cat" onchange="onCatChange()">
         <option value="holiday">🔴 Svátek</option>
-        <option value="birthday">🔵 Narozeniny</option>
+        <option value="birthday">🟣 Nar/Sv</option>
         <option value="vacation">🟢 Dovolená</option>
         <option value="event">🟡 Událost</option>
       </select>
@@ -391,7 +391,7 @@ const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec
 const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
 const CATS = {
   holiday:  { color: '#c0392b', bg: '#f5b7b1', label: 'Svátek'     },
-  birthday: { color: '#1a5276', bg: '#aed6f1', label: 'Narozeniny' },
+  birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv' },
   vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená'   },
   event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost'     },
 };
@@ -673,6 +673,19 @@ function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;
 function toggleCat(cat){hiddenCats.has(cat)?hiddenCats.delete(cat):hiddenCats.add(cat);document.getElementById('leg-'+cat).classList.toggle('off');render();}
 function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);document.getElementById('dark-btn').textContent=darkMode?'☀️':'🌙';localStorage.setItem('planner_dark',darkMode?'1':'0');}
 if(darkMode)document.getElementById('dark-btn').textContent='☀️';
+
+function onCatChange() {
+  const cat = document.getElementById('f-cat').value;
+  const nameEl = document.getElementById('f-name');
+  // Auto repeat
+  document.querySelector(`input[name=repeat][value=${cat === 'birthday' ? 'yearly' : 'none'}]`).checked = true;
+  // Auto cake emoji
+  if (cat === 'birthday') {
+    if (!nameEl.value.startsWith('🎂')) nameEl.value = '🎂 ' + nameEl.value;
+  } else {
+    nameEl.value = nameEl.value.replace(/^🎂\s*/, '');
+  }
+}
 
 function openAdd(ds){
   editId=null;
