@@ -833,17 +833,9 @@ function openCtxMenu(e, entries, ds, cell) {
   const userEntries = entries.filter(en => en.ev.id && en.ev.id.startsWith('u_'));
   if (!userEntries.length) return;
 
-  // Figure out which strip was clicked based on horizontal position in cell
   let pickedEntry = userEntries[0];
   const rect = cell.getBoundingClientRect();
-  const relX = (e.clientX - rect.left) / rect.width; // 0..1
-  const n = entries.length;
-  const clickedIndex = Math.min(Math.floor(relX * n), n - 1);
-  const clickedEntry = entries[clickedIndex];
-  if (clickedEntry && clickedEntry.ev.id && clickedEntry.ev.id.startsWith('u_')) {
-    pickedEntry = clickedEntry;
-  }
-  const relX = (e.clientX - rect.left) / rect.width; // 0..1
+  const relX = (e.clientX - rect.left) / rect.width;
   const n = entries.length;
   const clickedIndex = Math.min(Math.floor(relX * n), n - 1);
   const clickedEntry = entries[clickedIndex];
