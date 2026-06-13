@@ -175,6 +175,14 @@ body.dark #ctx-menu button:hover { background: #333; }
 
 #export-area { width:100%; height:80px; font-size:11px; font-family:monospace; resize:none; border:1px solid var(--gray-200); border-radius:6px; padding:6px; background:#fff; }
 
+/* REMINDERS */
+.rem-day { margin-bottom: 14px; }
+.rem-day-header { font-size: 11px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px solid var(--gray-100); }
+.rem-day-header span { color: var(--gray-800); font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.rem-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
+.rem-item .rem-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.rem-empty { font-size: 12px; color: var(--gray-400); padding: 20px 0; text-align: center; }
+
 /* PIN SCREEN */
 #pin-screen {
   position: fixed; inset: 0; background: #1c1c1c;
@@ -237,14 +245,16 @@ body.dark #ctx-menu button:hover { background: #333; }
     <button onclick="shiftWindow(1)">&#8250;</button>
   </div>
   <div class="legend">
-    <div class="leg" onclick="toggleCat('holiday')"  id="leg-holiday" ><div class="leg-dot" style="background:#c0392b"></div>Svátky</div>
+    <div class="leg" onclick="toggleCat('holiday')"  id="leg-holiday" ><div class="leg-dot" style="background:#2e7d4f"></div>St.svat</div>
     <div class="leg" onclick="toggleCat('birthday')" id="leg-birthday"><div class="leg-dot" style="background:#9b59b6"></div>Nar/Sv</div>
     <div class="leg" onclick="toggleCat('vacation')" id="leg-vacation"><div class="leg-dot" style="background:#1a7a44"></div>Dovolená</div>
     <div class="leg" onclick="toggleCat('event')"    id="leg-event"   ><div class="leg-dot" style="background:#b7770d"></div>Události</div>
+    <div class="leg" onclick="toggleCat('eras')"     id="leg-eras"    ><div class="leg-dot" style="background:#1a5276"></div>Eras</div>
   </div>
   <div id="upcoming-badge"></div>
   <span id="sync-status">⟳ připojuji...</span>
   <button class="top-btn" onclick="openAdd()">+ Přidat</button>
+  <button class="top-btn" onclick="openReminders()">🔔 Připomínky</button>
   <button class="top-btn" onclick="openManage()">☰ Správa</button>
   <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
   <button class="top-btn" onclick="openExport()">⬇ Export</button>
@@ -268,10 +278,11 @@ body.dark #ctx-menu button:hover { background: #333; }
     <div class="form-row">
       <label>Kategorie</label>
       <select id="f-cat" onchange="onCatChange()">
-        <option value="holiday">🔴 Svátek</option>
-        <option value="birthday">🟣 Nar/Sv</option>
-        <option value="vacation">🟢 Dovolená</option>
-        <option value="event">🟡 Událost</option>
+        <option value="holiday">🇨🇿 St.svat</option>
+        <option value="birthday">🌸 Nar/Sv</option>
+        <option value="vacation">🌴 Dovolená</option>
+        <option value="event">⭐ Událost</option>
+        <option value="eras">✈️ Eras</option>
       </select>
     </div>
     <div class="form-row"><label>Poznámka (nepovinné)</label><textarea id="f-note" placeholder="Doplňující informace..."></textarea></div>
@@ -333,6 +344,15 @@ body.dark #ctx-menu button:hover { background: #333; }
 </div>
 
 <!-- Firebase SDK -->
+<!-- REMINDERS MODAL -->
+<div class="overlay" id="reminders-overlay">
+  <div class="modal" style="width:480px;max-height:80vh;display:flex;flex-direction:column;">
+    <h2>🔔 Připomínky — nejbližších 7 dní</h2>
+    <div id="reminders-list" style="overflow-y:auto;flex:1;margin-top:8px;"></div>
+    <div class="modal-btns"><button onclick="closeReminders()">Zavřít</button></div>
+  </div>
+</div>
+
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
   <div class="ctx-header" id="ctx-title">Událost</div>
@@ -390,10 +410,11 @@ window._dbReady = true;
 const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
 const CATS = {
-  holiday:  { color: '#c0392b', bg: '#f5b7b1', label: 'Svátek'     },
-  birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv' },
-  vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená'   },
-  event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost'     },
+  holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '🇨🇿' },
+  birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv',   emoji: '🌸' },
+  vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená', emoji: '🌴' },
+  event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost',   emoji: '⭐' },
+  eras:     { color: '#1a5276', bg: '#d6eaf8', label: 'Eras',      emoji: '✈️' },
 };
 const BUILTIN = [
   {id:'h1',  name:'Nový rok',          month:1,  day:1,  cat:'holiday', repeat:'yearly'},
@@ -677,14 +698,14 @@ if(darkMode)document.getElementById('dark-btn').textContent='☀️';
 function onCatChange() {
   const cat = document.getElementById('f-cat').value;
   const nameEl = document.getElementById('f-name');
-  // Auto repeat
-  document.querySelector(`input[name=repeat][value=${cat === 'birthday' ? 'yearly' : 'none'}]`).checked = true;
-  // Auto cake emoji
-  if (cat === 'birthday') {
-    if (!nameEl.value.startsWith('🎂')) nameEl.value = '🎂 ' + nameEl.value;
-  } else {
-    nameEl.value = nameEl.value.replace(/^🎂\s*/, '');
-  }
+  // Auto repeat for birthday and eras
+  document.querySelector(`input[name=repeat][value=${(cat === 'birthday' || cat === 'eras') ? 'yearly' : 'none'}]`).checked = true;
+  // Auto emoji — remove any known cat emoji first, then add new one
+  const catEmojis = { birthday: '🌸', vacation: '🌴', eras: '✈️', holiday: '🇨🇿' };
+  let name = nameEl.value;
+  Object.values(catEmojis).forEach(em => { name = name.replace(new RegExp('^' + em + '\\s*'), ''); });
+  const em = catEmojis[cat];
+  nameEl.value = em ? em + ' ' + name : name;
 }
 
 function openAdd(ds){
@@ -838,15 +859,65 @@ function downloadIcs(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='planovac.ics';a.click();
 }
 
-['add-overlay','day-overlay','manage-overlay','export-overlay'].forEach(id=>{
+['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
   if(e.altKey&&e.key==='ArrowLeft')shiftWindow(-1);
   if(e.altKey&&e.key==='ArrowRight')shiftWindow(1);
   if(e.altKey&&e.key==='t')goToday();
 });
+
+function openReminders() {
+  renderReminders();
+  document.getElementById('reminders-overlay').classList.add('open');
+}
+function closeReminders() { document.getElementById('reminders-overlay').classList.remove('open'); }
+function renderReminders() {
+  const list = document.getElementById('reminders-list');
+  list.innerHTML = '';
+  const now = new Date(); now.setHours(0,0,0,0);
+  // Build map: daysAhead (1..7) -> events
+  const dayMap = {};
+  for (let d = 1; d <= 7; d++) {
+    const check = new Date(now); check.setDate(now.getDate() + d);
+    const ds = fmt(check);
+    const y = check.getFullYear();
+    const dateMap = buildDateMap([y]);
+    const entries = (dateMap[ds] || []);
+    if (entries.length) dayMap[d] = { date: check, entries };
+  }
+  if (!Object.keys(dayMap).length) {
+    const e = el('div','rem-empty'); e.textContent = 'Žádné události v příštích 7 dnech'; list.appendChild(e); return;
+  }
+  const dayNames = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+  Object.entries(dayMap).forEach(([d, {date, entries}]) => {
+    const block = el('div','rem-day');
+    const hdr = el('div','rem-day-header');
+    const diff = parseInt(d);
+    const dayLabel = diff === 1 ? 'Zítra' : `Za ${diff} dní`;
+    hdr.innerHTML = `${dayLabel} — <span>${date.getDate()}. ${MONTHS[date.getMonth()]} (${dayNames[date.getDay()]})</span>`;
+    block.appendChild(hdr);
+    // Deduplicate by event id
+    const seen = new Set();
+    entries.forEach(({ev}) => {
+      if (seen.has(ev.id)) return; seen.add(ev.id);
+      const cat = CATS[ev.cat] || CATS.event;
+      const item = el('div','rem-item');
+      const dot = el('div','rem-dot'); dot.style.background = cat.bg; dot.style.border = '2px solid ' + cat.color; item.appendChild(dot);
+      const emoji = cat.emoji || '';
+      const txt = document.createTextNode(`${emoji} ${ev.name}`);
+      item.appendChild(txt);
+      if (ev.note) {
+        const note = el('span',''); note.style.cssText='font-size:11px;color:var(--gray-400);margin-left:6px;';
+        note.textContent = ev.note; item.appendChild(note);
+      }
+      block.appendChild(item);
+    });
+    list.appendChild(block);
+  });
+}
 
 // ── CONTEXT MENU ──
 const ctxMenu = document.getElementById('ctx-menu');
