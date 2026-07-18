@@ -1,0 +1,135 @@
+ROČNÍ PLÁNOVAČ – POPIS APLIKACE A SPRÁVY
+========================================
+
+Veřejná adresa:
+https://thecodealloy.github.io/planovac/
+
+ÚČEL
+----
+Roční plánovač zobrazuje dvanáct po sobě jdoucích měsíců. Umožňuje vytvářet,
+upravovat, kopírovat, přesouvat a mazat jednodenní i vícedenní události.
+Události mohou být jednorázové nebo každoročně opakované a jsou rozdělené do
+kategorií.
+
+POUŽITÉ SLUŽBY
+--------------
+GitHub:
+  Uchovává zdrojový kód.
+
+GitHub Pages:
+  Zveřejňuje statickou webovou aplikaci z index.html.
+
+Firebase Authentication:
+  Přihlašuje uživatele jejich Google účtem.
+
+Cloud Firestore:
+  Ukládá a synchronizuje společné události v reálném čase.
+
+Firestore Security Rules:
+  Povolují přístup pouze uživatelům uvedeným v kolekci authorizedUsers.
+
+Firebase projekt se jmenuje rocni-planovac. Konfigurace Firebase ve zdrojovém
+kódu není heslo. Data chrání přihlášení a pravidla Firestore.
+
+PŘIHLÁŠENÍ A UŽIVATELÉ
+----------------------
+Uživatel se přihlásí přes Google. Přístup k událostem dostane pouze tehdy,
+když jeho Firebase UID existuje jako ID dokumentu v kolekci authorizedUsers.
+
+Přidání uživatele:
+1. Uživatel se jednou přihlásí do plánovače.
+2. Jeho účet se objeví ve Firebase Authentication / Users.
+3. Správce zkopíruje jeho UID.
+4. Ve Firestore / authorizedUsers vytvoří dokument s tímto UID jako Document ID.
+5. Přidá pole role typu string s hodnotou member.
+6. Uživatel obnoví plánovač.
+
+Odebrání přístupu:
+Smaže se dokument uživatele z authorizedUsers. Jeho události se tím nemažou.
+
+DATA
+----
+Události jsou společné pro všechny schválené uživatele. Jsou uložené v kolekci
+events a používají pole id, name, dateFrom, dateTo, cat, note a repeat.
+
+České státní svátky a velikonoční svátky jsou zabudované přímo v aplikaci a
+neukládají se do Firestore.
+
+PŘEHLED PŘÍŠTÍCH 7 DNÍ
+----------------------
+Tlačítko Příštích 7 dní pouze zobrazí všechny události v následujících sedmi
+dnech. Nejde o individuálně nastavená upozornění.
+
+Současná funkce:
+- nemá u události volbu Připomenout,
+- neposílá e-mail ani push oznámení,
+- nefunguje na pozadí při zavřené stránce,
+- nezobrazuje dnešní události,
+- nezobrazuje události z právě skrytých kategorií,
+- pouze po otevření vypíše události na příštích sedm dnů.
+
+DOPORUČENÍ PRO PŘIPOMÍNKY
+-------------------------
+První doporučený krok je přidat připomínky uvnitř aplikace:
+- přepínač Připomenout,
+- volbu v den události, 1 den, 3 dny nebo 7 dní předem,
+- případně čas připomenutí.
+
+Takové upozornění se zobrazí po otevření aplikace, ale nebude fungovat při
+zavřeném webu.
+
+Skutečné push notifikace při zavřené stránce by vyžadovaly service worker,
+Firebase Cloud Messaging, ukládání tokenů zařízení a serverové plánování,
+například Cloud Functions nebo Cloud Scheduler. Tato varianta je složitější a
+může vyžadovat placený tarif Firebase.
+
+EXPORT A ZÁLOHY
+---------------
+JSON export slouží jako přenosná záloha vlastních událostí.
+JSON import kontroluje formát a upozorňuje na shodná ID.
+ICS export slouží pro jiné kalendářové aplikace.
+
+Poslední známá lokální záloha 23 událostí je v souboru:
+backups/events-2026-07-19-last-known.json
+
+JSON zálohy jsou ignorované Gitem a nesmějí být odeslány na veřejný GitHub.
+
+BEZPEČNOST
+----------
+Web a zdrojový kód jsou veřejné, ale soukromé události jsou chráněné přes
+Firebase Authentication, authorizedUsers a firestore.rules.
+
+Mazání vyžaduje potvrzení. Import kontroluje povolená pole, kategorie, délky a
+data. Uživatelský text se nevkládá nebezpečně do HTML.
+
+DOPORUČENÉ DALŠÍ ÚPRAVY
+-----------------------
+1. Nastavitelné připomínky uvnitř aplikace.
+2. Jasná obrazovka Přístup nebyl schválen.
+3. Správa uživatelů přímo v aplikaci pro administrátora.
+4. Pole createdAt, updatedAt, createdBy a updatedBy.
+5. Koš nebo archiv pro obnovu smazaných událostí.
+6. Pravidelné automatické zálohy.
+7. Rozdělení index.html na HTML, CSS a JavaScript.
+8. Automatické testy událostí, importu, ICS a pravidel.
+9. Lepší měsíční nebo seznamové zobrazení na telefonu.
+10. Firebase App Check jako další ochrana proti automatizovanému zneužívání.
+
+DŮLEŽITÉ SOUBORY
+----------------
+index.html             webová aplikace
+firestore.rules        bezpečnostní pravidla Firestore
+README.md              stručný technický postup
+POPIS_APLIKACE.md      podrobný popis v Markdownu
+POPIS_APLIKACE.txt     tento prostý text
+backups/README.md      popis lokální zálohy
+tests/static-check.js  základní statická kontrola
+
+BEZPEČNÝ POSTUP ZMĚN
+--------------------
+1. Vytvořit zálohu událostí.
+2. Připravit a otestovat změny lokálně.
+3. Zkontrolovat, že JSON záloha není v commitu.
+4. Commitnout pouze zdrojové a dokumentační soubory.
+5. Pushnout na GitHub až po výslovném schválení vlastníka.
+6. Po nasazení ověřit přihlášení, stav online a jeden testovací zápis.

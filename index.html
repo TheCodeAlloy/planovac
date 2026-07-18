@@ -259,7 +259,7 @@ body.dark #ctx-menu button:hover { background: #333; }
   <div id="upcoming-badge"></div>
   <span id="sync-status">⟳ připojuji...</span>
   <button class="top-btn" onclick="openAdd()">+ Přidat</button>
-  <button class="top-btn" onclick="openReminders()">🔔 Připomínky</button>
+  <button class="top-btn" onclick="openReminders()">📆 Příštích 7 dní</button>
   <button class="top-btn" onclick="openManage()">☰ Správa</button>
   <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
   <button class="top-btn" onclick="openExport()">⬇ Export</button>
@@ -353,7 +353,7 @@ body.dark #ctx-menu button:hover { background: #333; }
 <!-- REMINDERS MODAL -->
 <div class="overlay" id="reminders-overlay">
   <div class="modal" style="width:480px;max-height:80vh;display:flex;flex-direction:column;">
-    <h2>🔔 Připomínky — nejbližších 7 dní</h2>
+    <h2>📆 Události v příštích 7 dnech</h2>
     <div id="reminders-list" style="overflow-y:auto;flex:1;margin-top:8px;"></div>
     <div class="modal-btns"><button onclick="closeReminders()">Zavřít</button></div>
   </div>

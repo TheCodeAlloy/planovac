@@ -2,6 +2,10 @@
 
 Jednostránkový plánovač používající Firebase Authentication a Cloud Firestore.
 
+Podrobný popis funkcí, dat, zabezpečení, připomínek a správy je v
+[`POPIS_APLIKACE.md`](POPIS_APLIKACE.md). Prostá textová verze je v
+[`POPIS_APLIKACE.txt`](POPIS_APLIKACE.txt).
+
 ## Bezpečné uvedení změn do provozu
 
 1. V konzoli Firebase otevřete **Authentication → Sign-in method** a zapněte poskytovatele **Google**.
