@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function authorized() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid));
+    }
+
+    function validEvent() {
+      return request.resource.data.keys().hasOnly([
+          'id', 'name', 'dateFrom', 'dateTo', 'cat', 'note', 'repeat'
+        ])
+        && request.resource.data.id is string
+        && request.resource.data.id.matches('^u_[A-Za-z0-9_-]+$')
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.dateFrom is string
+        && request.resource.data.dateFrom.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && (request.resource.data.dateTo == null
+            || request.resource.data.dateTo is string)
+        && request.resource.data.cat in [
+          'holiday', 'birthday', 'vacation', 'event', 'eras'
+        ]
+        && (request.resource.data.note == null
+            || request.resource.data.note is string
+               && request.resource.data.note.size() <= 2000)
+        && request.resource.data.repeat in ['none', 'yearly'];
+    }
+
+    match /events/{eventId} {
+      allow read, delete: if authorized();
+      allow create, update: if authorized()
+        && eventId == request.resource.data.id
+        && validEvent();
+    }
+
+    // Seznam spravuje vlastník projektu pouze přes Firebase Console.
+    // Klientská aplikace jej nemůže číst ani měnit.
+    match /authorizedUsers/{uid} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

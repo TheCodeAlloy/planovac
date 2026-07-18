@@ -14,6 +14,7 @@
   --cur-col-bg: rgba(139,26,26,0.07);
 }
 html, body { height: 100%; font-family: var(--font); background: var(--gray-50); color: var(--gray-800); overflow: hidden; }
+body { display: flex; flex-direction: column; }
 body.dark {
   --gray-50: #1a1918; --gray-100: #242322; --gray-200: #3a3836;
   --gray-400: #7a7773; --gray-600: #b0ada8; --gray-800: #e8e6e2;
@@ -35,7 +36,7 @@ body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
 #topbar {
   display: flex; align-items: center; gap: 10px;
   padding: 0 14px; background: #1c1c1c; color: #fff;
-  height: 46px; flex-shrink: 0;
+  min-height: 46px; flex-shrink: 0;
 }
 #topbar h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
 .year-nav { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
@@ -54,7 +55,7 @@ body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
 #sync-status.ok { color: #4caf50; }
 #sync-status.err { color: #f44336; }
 
-#grid-outer { height: calc(100vh - 46px); overflow-y: auto; overflow-x: auto; }
+#grid-outer { flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; }
 #grid-outer::-webkit-scrollbar { width: 5px; height: 5px; }
 #grid-outer::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
 
@@ -209,30 +210,34 @@ body.dark #ctx-menu button:hover { background: #333; }
 #pin-keypad button:active { background: rgba(255,255,255,0.25); }
 #pin-keypad button.del { font-size: 16px; color: rgba(255,255,255,0.5); }
 #pin-error { color: #e74c3c; font-size: 12px; height: 16px; text-align: center; }
+.login-form { width: min(320px, calc(100vw - 32px)); display: grid; gap: 10px; }
+.login-form button { padding: 11px 12px; border: 0; border-radius: 7px; background: var(--red); color: #fff; cursor: pointer; font-weight: 600; }
+
+@media (max-width: 900px) {
+  #topbar { flex-wrap: wrap; height: auto; padding: 7px 10px; gap: 6px; }
+  #topbar h1 { flex: 1; }
+  .legend { order: 3; flex-basis: 100%; overflow-x: auto; padding-bottom: 1px; }
+  #upcoming-badge { order: 4; border-left: 0; padding-left: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  #sync-status { order: 4; }
+  .top-btn { padding: 5px 7px; }
+}
+
+@media (max-width: 520px) {
+  #topbar h1, #upcoming-badge { display: none; }
+  .year-nav { margin-right: auto; }
+  #topbar > .top-btn { padding: 5px 6px; }
+  .legend { order: 5; }
+}
 </style>
 </head>
 <body>
 
-<!-- PIN SCREEN -->
+<!-- LOGIN SCREEN -->
 <div id="pin-screen">
   <h2>📅 Roční plánovač</h2>
-  <p class="pin-subtitle">Zadejte PIN pro přístup</p>
-  <div id="pin-dots">
-    <span></span><span></span><span></span><span></span>
-  </div>
-  <div id="pin-keypad">
-    <button onclick="pinKey('1')">1</button>
-    <button onclick="pinKey('2')">2</button>
-    <button onclick="pinKey('3')">3</button>
-    <button onclick="pinKey('4')">4</button>
-    <button onclick="pinKey('5')">5</button>
-    <button onclick="pinKey('6')">6</button>
-    <button onclick="pinKey('7')">7</button>
-    <button onclick="pinKey('8')">8</button>
-    <button onclick="pinKey('9')">9</button>
-    <button onclick="pinKey('')" style="visibility:hidden"></button>
-    <button onclick="pinKey('0')">0</button>
-    <button class="del" onclick="pinDel()">⌫</button>
+  <p class="pin-subtitle">Přihlaste se ke svým datům</p>
+  <div class="login-form">
+    <button type="button" onclick="loginPlanner()">G&nbsp;&nbsp; Přihlásit přes Google</button>
   </div>
   <div id="pin-error"></div>
 </div>
@@ -258,6 +263,7 @@ body.dark #ctx-menu button:hover { background: #333; }
   <button class="top-btn" onclick="openManage()">☰ Správa</button>
   <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
   <button class="top-btn" onclick="openExport()">⬇ Export</button>
+  <button class="top-btn" onclick="logoutPlanner()">↪ Odhlásit</button>
 </div>
 
 <div id="grid-outer"><div id="planner"></div></div>
@@ -365,6 +371,7 @@ body.dark #ctx-menu button:hover { background: #333; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDKSK8S1D7-g_64pXdoZTTUhfKv3_uT6rA",
@@ -377,29 +384,49 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const eventsCol = collection(db, "events");
 
 // ── expose DB functions to global scope ──
 let _remoteEvents = [];
 
 window._dbSave = async function(ev) {
+  if (!auth.currentUser) throw new Error('Uživatel není přihlášen.');
   await setDoc(doc(db, "events", ev.id), ev);
 };
 window._dbDelete = async function(id) {
+  if (!auth.currentUser) throw new Error('Uživatel není přihlášen.');
   await deleteDoc(doc(db, "events", id));
 };
 
-// Real-time listener
 const syncEl = document.getElementById('sync-status');
-onSnapshot(eventsCol, (snapshot) => {
-  _remoteEvents = snapshot.docs.map(d => d.data());
-  syncEl.textContent = '● online';
-  syncEl.className = 'ok';
-  render();
-}, (err) => {
-  syncEl.textContent = '● offline';
-  syncEl.className = 'err';
-  console.error(err);
+let unsubscribeEvents = null;
+
+const googleProvider = new GoogleAuthProvider();
+window._authLogin = async function() { await signInWithPopup(auth, googleProvider); };
+window._authLogout = async function() { await signOut(auth); };
+
+onAuthStateChanged(auth, (user) => {
+  if (unsubscribeEvents) { unsubscribeEvents(); unsubscribeEvents = null; }
+  _remoteEvents = [];
+  document.getElementById('pin-screen').style.display = user ? 'none' : 'flex';
+  if (!user) {
+    syncEl.textContent = '● odhlášeno';
+    syncEl.className = '';
+    render();
+    return;
+  }
+  syncEl.textContent = '⟳ připojuji...';
+  unsubscribeEvents = onSnapshot(eventsCol, (snapshot) => {
+    _remoteEvents = snapshot.docs.map(d => d.data());
+    syncEl.textContent = '● online';
+    syncEl.className = 'ok';
+    render();
+  }, (err) => {
+    syncEl.textContent = '● chyba přístupu';
+    syncEl.className = 'err';
+    console.error(err);
+  });
 });
 
 window._getEvents = function() { return _remoteEvents; };
@@ -472,8 +499,11 @@ async function dbSave(ev){
   else { const evs=loadEvents().filter(e=>e.id!==ev.id); evs.push(ev); localStorage.setItem('planner_v3',JSON.stringify(evs)); render(); }
 }
 async function dbDelete(id){
+  const ev=loadEvents().find(e=>e.id===id);
+  if(!confirm(`Opravdu smazat událost „${ev?.name||'bez názvu'}“?`))return false;
   if(window._dbDelete) await window._dbDelete(id);
   else { localStorage.setItem('planner_v3',JSON.stringify(loadEvents().filter(e=>e.id!==id))); render(); }
+  return true;
 }
 
 // ── STATE ──
@@ -559,20 +589,26 @@ function updateUpcomingBadge(){
     }
   });
   const badge=document.getElementById('upcoming-badge');
-  badge.innerHTML=nearest?`Nejbližší: <span>${nearest.name}</span> za ${nearestDays} d`:'';
+  badge.replaceChildren();
+  if(nearest){
+    badge.append('Nejbližší: ');
+    const name=el('span','');name.textContent=nearest.name;badge.appendChild(name);
+    badge.append(` za ${nearestDays} d`);
+  }
 }
 
 const tooltipEl=document.getElementById('tooltip');
 function showTooltip(e,entries){
   if(!entries||!entries.length){hideTooltip();return;}
-  tooltipEl.innerHTML=entries.map(({ev})=>{
+  tooltipEl.replaceChildren();
+  entries.forEach(({ev},index)=>{
     const cat=CATS[ev.cat]||CATS.event;
-    const dot=`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.bg};border:1px solid ${cat.color};margin-right:5px;vertical-align:middle;"></span>`;
-    let t=dot+'<b>'+ev.name+'</b>';
-    if(ev.note)t+=`<br><span style="opacity:0.7;font-size:10px;padding-left:13px;">${ev.note}</span>`;
-    if(ev.dateTo){const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');t+=`<br><span style="opacity:0.55;font-size:10px;padding-left:13px;">${fp[2]}.${fp[1]}. – ${tp[2]}.${tp[1]}.</span>`;}
-    return t;
-  }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:4px 0;">');
+    if(index){const hr=el('hr','');hr.style.cssText='border:none;border-top:1px solid rgba(255,255,255,0.15);margin:4px 0;';tooltipEl.appendChild(hr);}
+    const dot=el('span','');dot.style.cssText=`display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.bg};border:1px solid ${cat.color};margin-right:5px;vertical-align:middle;`;tooltipEl.appendChild(dot);
+    const title=el('b','');title.textContent=ev.name;tooltipEl.appendChild(title);
+    if(ev.note){tooltipEl.appendChild(document.createElement('br'));const note=el('span','');note.style.cssText='opacity:0.7;font-size:10px;padding-left:13px;';note.textContent=ev.note;tooltipEl.appendChild(note);}
+    if(ev.dateTo){const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');tooltipEl.appendChild(document.createElement('br'));const dates=el('span','');dates.style.cssText='opacity:0.55;font-size:10px;padding-left:13px;';dates.textContent=`${fp[2]}.${fp[1]}. – ${tp[2]}.${tp[1]}.`;tooltipEl.appendChild(dates);}
+  });
   tooltipEl.classList.add('show');
   posTooltip(e);
 }
@@ -826,37 +862,56 @@ function openExport(){
 function closeExport(){document.getElementById('export-overlay').classList.remove('open');}
 function downloadJson(){
   const blob=new Blob([JSON.stringify(loadEvents().filter(e=>e.id&&e.id.startsWith('u_')),null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='planovac-export.json';a.click();
+  const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='planovac-export.json';a.click();URL.revokeObjectURL(url);
+}
+function validDateString(value){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+  return fmt(parseDate(value))===value;
+}
+function normalizeImportedEvent(ev){
+  if(!ev||typeof ev!=='object'||Array.isArray(ev))throw new Error('Neplatná událost.');
+  const allowedCats=new Set(Object.keys(CATS));
+  const id=typeof ev.id==='string'&&/^u_[A-Za-z0-9_-]+$/.test(ev.id)?ev.id:`u_${Date.now()}_${crypto.randomUUID()}`;
+  const name=typeof ev.name==='string'?ev.name.trim():'';
+  const dateFrom=ev.dateFrom;
+  const dateTo=ev.dateTo||null;
+  const cat=allowedCats.has(ev.cat)?ev.cat:'event';
+  const repeat=ev.repeat==='yearly'?'yearly':'none';
+  const note=typeof ev.note==='string'&&ev.note.trim()?ev.note.trim():null;
+  if(!name||name.length>200||!validDateString(dateFrom)||dateTo&&(!validDateString(dateTo)||dateTo<dateFrom))throw new Error('Neplatný název nebo datum.');
+  if(note&&note.length>2000)throw new Error('Poznámka je příliš dlouhá.');
+  return{id,name,dateFrom,dateTo,cat,note,repeat};
 }
 async function importJson(){
   const text=document.getElementById('export-area').value.trim();
   try{
-    const data=JSON.parse(text);
-    if(!Array.isArray(data))throw new Error();
-    if(!confirm(`Importovat ${data.length} událostí?`))return;
+    const parsed=JSON.parse(text);
+    if(!Array.isArray(parsed)||parsed.length>5000)throw new Error('Import musí být pole nejvýše 5000 událostí.');
+    const data=parsed.map(normalizeImportedEvent);
+    const existing=new Set(loadEvents().map(e=>e.id));
+    const overwriteCount=data.filter(e=>existing.has(e.id)).length;
+    const warning=overwriteCount?` ${overwriteCount} existujících událostí se stejným ID bude nahrazeno.`:'';
+    if(!confirm(`Importovat ${data.length} událostí?${warning}`))return;
     for(const ev of data) await dbSave(ev);
     closeExport();
-  }catch{alert('Neplatný JSON formát.');}
+  }catch(err){alert(`Import se nezdařil: ${err.message||'neplatný JSON formát'}`);}
 }
+function icsEscape(value){return String(value??'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');}
 function downloadIcs(){
   const evs=loadEvents().filter(e=>e.id&&e.id.startsWith('u_'));
-  const years=[...new Set(getWindowMonths().map(c=>c.year))];
-  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Planovac//CS\r\n';
+  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nCALSCALE:GREGORIAN\r\nPRODID:-//Planovac//CS\r\n';
   evs.forEach(ev=>{
-    years.forEach(y=>{
-      let from=ev.dateFrom,to=ev.dateTo||ev.dateFrom;
-      if(ev.repeat==='yearly'){const o=parseInt(from.split('-')[0]);from=addYears(from,y-o);to=addYears(to,y-o);}
-      else if(!from.startsWith(y+'-'))return;
-      const dtS=from.replace(/-/g,'');
-      const dtE=(()=>{const d=parseDate(to);d.setDate(d.getDate()+1);return fmt(d).replace(/-/g,'');})();
-      ics+=`BEGIN:VEVENT\r\nUID:${ev.id}-${y}@planovac\r\nDTSTART;VALUE=DATE:${dtS}\r\nDTEND;VALUE=DATE:${dtE}\r\nSUMMARY:${ev.name}\r\n`;
-      if(ev.note)ics+=`DESCRIPTION:${ev.note}\r\n`;
-      ics+='END:VEVENT\r\n';
-    });
+    const from=ev.dateFrom,to=ev.dateTo||ev.dateFrom;
+    const dtS=from.replace(/-/g,'');
+    const dtE=(()=>{const d=parseDate(to);d.setDate(d.getDate()+1);return fmt(d).replace(/-/g,'');})();
+    ics+=`BEGIN:VEVENT\r\nUID:${icsEscape(ev.id)}@planovac\r\nDTSTART;VALUE=DATE:${dtS}\r\nDTEND;VALUE=DATE:${dtE}\r\nSUMMARY:${icsEscape(ev.name)}\r\n`;
+    if(ev.note)ics+=`DESCRIPTION:${icsEscape(ev.note)}\r\n`;
+    if(ev.repeat==='yearly')ics+='RRULE:FREQ=YEARLY\r\n';
+    ics+='END:VEVENT\r\n';
   });
   ics+='END:VCALENDAR';
   const blob=new Blob([ics],{type:'text/calendar'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='planovac.ics';a.click();
+  const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='planovac.ics';a.click();URL.revokeObjectURL(url);
 }
 
 ['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay'].forEach(id=>{
@@ -994,44 +1049,21 @@ async function ctxCopy() {
 document.addEventListener('mousedown', e => { if (!ctxMenu.contains(e.target)) closeCtxMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
 
-// ── PIN ──
-const CORRECT_PIN = '1234'; // ← ZDE ZMĚŇTE PIN
-const SESSION_KEY = 'planner_unlocked';
-let pinEntry = '';
-
-function pinKey(digit) {
-  if (!digit || pinEntry.length >= 4) return;
-  pinEntry += digit;
-  updatePinDots();
-  if (pinEntry.length === 4) checkPin();
-}
-function pinDel() {
-  pinEntry = pinEntry.slice(0, -1);
-  updatePinDots();
-  document.getElementById('pin-error').textContent = '';
-}
-function updatePinDots(state) {
-  document.querySelectorAll('#pin-dots span').forEach((s, i) => {
-    s.className = state || (i < pinEntry.length ? 'filled' : '');
-  });
-}
-function checkPin() {
-  if (pinEntry === CORRECT_PIN) {
-    sessionStorage.setItem(SESSION_KEY, '1');
-    document.getElementById('pin-screen').style.display = 'none';
-  } else {
-    updatePinDots('error');
-    document.getElementById('pin-error').textContent = 'Nesprávný PIN';
-    setTimeout(() => { pinEntry = ''; updatePinDots(); document.getElementById('pin-error').textContent = ''; }, 1000);
+// ── AUTHENTICATION ──
+async function loginPlanner() {
+  const error=document.getElementById('pin-error');
+  error.textContent='Přihlašuji…';
+  try {
+    if(!window._authLogin)throw new Error('Přihlašování ještě není připravené.');
+    await window._authLogin();
+    error.textContent='';
+  } catch (err) {
+    console.error(err);
+    error.textContent='Přihlášení se nezdařilo.';
   }
 }
-document.addEventListener('keydown', e => {
-  if (document.getElementById('pin-screen').style.display === 'none') return;
-  if (e.key >= '0' && e.key <= '9') pinKey(e.key);
-  if (e.key === 'Backspace') pinDel();
-});
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  document.getElementById('pin-screen').style.display = 'none';
+async function logoutPlanner() {
+  if(window._authLogout)await window._authLogout();
 }
 
 render();
