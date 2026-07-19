@@ -46,6 +46,10 @@ if (html.includes("icon.textContent='★'")) {
   throw new Error('Obecná událost stále používá hvězdičku místo malé tečky.');
 }
 
+if (/\.cell-category-icon\s*\{[^}]*background\s*:\s*rgba\(255,255,255/i.test(html)) {
+  throw new Error('Ikony kategorií stále používají bílý kruhový podklad.');
+}
+
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 for (const protectedPath of [
   'privateEvents',
