@@ -95,9 +95,12 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
 .dc .cell-strip { display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
 .dc .cell-label { font-size: 10px; line-height: 12px; padding: 1px 3px; overflow: hidden; text-overflow: ellipsis; font-weight: 600; width: 100%; text-align: center; word-break: break-word; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .dc .cell-strip.has-event-icon .cell-label { padding-left: 17px; }
-.cell-event-icon { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 1; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,0.92); color: #49a9e8; border: 1px solid rgba(73,169,232,0.7); box-shadow: 0 1px 2px rgba(0,0,0,0.18); font-size: 10px; line-height: 1; font-weight: 900; pointer-events: none; }
+.cell-event-icon { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); z-index: 1; width: 7px; height: 7px; border-radius: 50%; background: #65bcea; border: 1px solid rgba(26,82,118,0.45); box-shadow: 0 0 0 1px rgba(255,255,255,0.35); pointer-events: none; }
 .cell-category-icon { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 1; width: 15px; height: 15px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.9); font-size:9px; pointer-events:none; }
-body.dark .cell-event-icon { background: rgba(30,29,28,0.9); color: #ffd45c; border-color: rgba(255,212,92,0.55); }
+body.dark .cell-event-icon { background: #7ac9f1; border-color: rgba(255,255,255,0.45); box-shadow: 0 0 0 1px rgba(0,0,0,0.25); }
+.category-symbol { width:24px; display:grid; place-items:center; }
+.cz-flag { position:relative; display:inline-block; width:13px; height:9px; overflow:hidden; border:1px solid rgba(0,0,0,.25); background:linear-gradient(to bottom,#fff 0 50%,#d7141a 50% 100%); box-sizing:border-box; }
+.cz-flag::before { content:""; position:absolute; left:0; top:0; width:0; height:0; border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid #11457e; }
 .visibility-marker { position:absolute; right:2px; top:1px; z-index:2; font-size:9px; line-height:1; filter:drop-shadow(0 1px 1px rgba(255,255,255,.8)); pointer-events:none; }
 .dc:not(.empty):hover .cell-bg { filter: brightness(0.92); }
 .dc:not(.empty):hover .cell-strip { filter: brightness(0.92); }
@@ -313,10 +316,10 @@ body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-wid
     <div class="form-row">
       <label>Kategorie</label>
       <select id="f-cat" onchange="onCatChange()">
-        <option value="holiday">🇨🇿 St.svat</option>
-        <option value="birthday">🌸 Nar/Sv</option>
+        <option value="holiday">St.svat</option>
+        <option value="birthday">🎂 Nar/Sv</option>
         <option value="vacation">🌴 Dovolená</option>
-        <option value="event">⭐ Událost</option>
+        <option value="event">● Událost</option>
         <option value="eras">✈️ Eras</option>
       </select>
     </div>
@@ -528,23 +531,39 @@ window._dbReady = true;
 const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
 const BASE_CATS = {
-  holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '🇨🇿' },
-  birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv',   emoji: '🌸' },
+  holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '' },
+  birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv',   emoji: '🎂' },
   vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená', emoji: '🌴' },
-  event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost',   emoji: '⭐' },
+  event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost',   emoji: '●' },
   eras:     { color: '#1a5276', bg: '#d6eaf8', label: 'Eras',      emoji: '✈️' },
 };
 let CATS={...BASE_CATS};
-function paleColor(hex){const n=parseInt(String(hex).replace('#',''),16);if(Number.isNaN(n))return'#e8eef5';const r=(n>>16)&255,g=(n>>8)&255,b=n&255;return`rgb(${Math.round(r+(255-r)*.72)},${Math.round(g+(255-g)*.72)},${Math.round(b+(255-b)*.72)})`;}
+function colorRgb(hex){const value=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(value))return[232,238,245];const n=parseInt(value,16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function contrastText(bg){const rgb=colorRgb(bg).map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);});const luminance=.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];return (luminance+.05)/.05>=1.05/(luminance+.05)?'#1b1b1b':'#ffffff';}
+function accentColor(bg){const [r,g,b]=colorRgb(bg);return`rgb(${Math.round(r*.62)},${Math.round(g*.62)},${Math.round(b*.62)})`;}
+function categoryStyle(base,bg){return{...base,bg,color:contrastText(bg),accent:accentColor(bg)};}
+function categorySymbol(catId,className='cell-category-icon'){
+  const icon=el('span',className),cat=CATS[catId]||CATS.event;
+  if(catId==='holiday')icon.appendChild(el('span','cz-flag'));
+  else icon.textContent=cat.emoji||'●';
+  return icon;
+}
+function displayEventName(ev){
+  let name=String(ev?.name||'').trim();
+  const legacy={birthday:['🎂','🌸'],vacation:['🌴'],eras:['✈️','✈'],holiday:['🇨🇿'],event:['⭐']};
+  const candidates=[CATS[ev?.cat]?.emoji,...(legacy[ev?.cat]||[])].filter(Boolean);
+  for(const emoji of new Set(candidates)){if(name.startsWith(emoji))return name.slice(emoji.length).trimStart();}
+  return name;
+}
 function syncCategories(){
   const custom={};
-  (window._plannerState?.categories||[]).forEach(c=>{const override=window._plannerState?.settings?.categoryColors?.[c.id];const color=override||c.color||'#4a90e2';custom[c.id]={color,bg:paleColor(color),label:c.name||'Kategorie',emoji:c.emoji||'●',custom:true,archived:!!c.archived};});
-  const base={};Object.entries(BASE_CATS).forEach(([id,c])=>{const color=window._plannerState?.settings?.categoryColors?.[id]||c.color;base[id]={...c,color,bg:paleColor(color)};});
+  (window._plannerState?.categories||[]).forEach(c=>{const bg=window._plannerState?.settings?.categoryColors?.[c.id]||c.color||'#4a90e2';custom[c.id]=categoryStyle({label:c.name||'Kategorie',emoji:c.emoji||'●',custom:true,archived:!!c.archived},bg);});
+  const base={};Object.entries(BASE_CATS).forEach(([id,c])=>{const bg=window._plannerState?.settings?.categoryColors?.[id]||c.bg;base[id]=categoryStyle(c,bg);});
   CATS={...base,...custom};
   refreshCategoryControls();
   renderLegend();
 }
-function renderLegend(){const legend=document.querySelector('.legend');if(!legend)return;legend.replaceChildren();Object.entries(CATS).filter(([,c])=>!c.archived).forEach(([id,c])=>{const item=el('div','leg'+(hiddenCats?.has(id)?' off':''));item.id='leg-'+id;item.onclick=()=>toggleCat(id);const dot=el('div','leg-dot');dot.style.background=c.color;item.append(dot,document.createTextNode(c.label));legend.appendChild(item);});}
+function renderLegend(){const legend=document.querySelector('.legend');if(!legend)return;legend.replaceChildren();Object.entries(CATS).filter(([,c])=>!c.archived).forEach(([id,c])=>{const item=el('div','leg'+(hiddenCats?.has(id)?' off':''));item.id='leg-'+id;item.onclick=()=>toggleCat(id);const dot=el('div','leg-dot');dot.style.background=c.bg;dot.style.border='1px solid '+c.accent;item.append(dot,document.createTextNode(c.label));legend.appendChild(item);});}
 const BUILTIN = [
   {id:'h1',  name:'Nový rok',          month:1,  day:1,  cat:'holiday', repeat:'yearly'},
   {id:'h2',  name:'Svátek práce',       month:5,  day:1,  cat:'holiday', repeat:'yearly'},
@@ -707,8 +726,8 @@ function showTooltip(e,entries){
   entries.forEach(({ev},index)=>{
     const cat=CATS[ev.cat]||CATS.event;
     if(index){const hr=el('hr','');hr.style.cssText='border:none;border-top:1px solid rgba(255,255,255,0.15);margin:4px 0;';tooltipEl.appendChild(hr);}
-    const dot=el('span','');dot.style.cssText=`display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.bg};border:1px solid ${cat.color};margin-right:5px;vertical-align:middle;`;tooltipEl.appendChild(dot);
-    const title=el('b','');title.textContent=ev.name;tooltipEl.appendChild(title);
+    const dot=el('span','');dot.style.cssText=`display:inline-block;width:8px;height:8px;border-radius:50%;background:${cat.bg};border:1px solid ${cat.accent};margin-right:5px;vertical-align:middle;`;tooltipEl.appendChild(dot);
+    const title=el('b','');title.textContent=displayEventName(ev);tooltipEl.appendChild(title);
     if(ev.note){tooltipEl.appendChild(document.createElement('br'));const note=el('span','');note.style.cssText='opacity:0.7;font-size:10px;padding-left:13px;';note.textContent=ev.note;tooltipEl.appendChild(note);}
     if(ev.dateTo){const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');tooltipEl.appendChild(document.createElement('br'));const dates=el('span','');dates.style.cssText='opacity:0.55;font-size:10px;padding-left:13px;';dates.textContent=`${fp[2]}.${fp[1]}. – ${tp[2]}.${tp[1]}.`;tooltipEl.appendChild(dates);}
   });
@@ -774,16 +793,16 @@ function render(){
           if(i>0) strip.style.borderLeft='1px solid rgba(255,255,255,0.5)';
           if(ev.cat==='event'){
             strip.classList.add('has-event-icon');
-            const icon=el('span','cell-event-icon');icon.textContent='★';icon.setAttribute('aria-hidden','true');strip.appendChild(icon);
+            const icon=el('span','cell-event-icon');icon.setAttribute('aria-hidden','true');strip.appendChild(icon);
           }
-          else if(cat.custom){strip.classList.add('has-event-icon');const icon=el('span','cell-category-icon');icon.textContent=cat.emoji||'●';strip.appendChild(icon);}
+          else {strip.classList.add('has-event-icon');strip.appendChild(categorySymbol(ev.cat));}
           if(ev.visibility==='private'||ev.visibility==='selected'){
             const marker=el('span','visibility-marker');marker.textContent=ev.visibility==='private'?'🔒':'👥';marker.title=ev.visibility==='private'?'Soukromá událost':'Událost pro vybrané uživatele';strip.appendChild(marker);
           }
           if(isStart||isOnly){
             const lbl=el('div','cell-label');
             lbl.style.color=cat.color;
-            lbl.textContent=ev.name;
+            lbl.textContent=displayEventName(ev);
             strip.appendChild(lbl);
           }
           // Drag on strip level — each event independently
@@ -852,7 +871,7 @@ function refreshCategoryControls(){
   selects.forEach(select=>{
     const previous=select.value;
     const first=select.id==='manage-cat'?'<option value="">Všechny kategorie</option>':'';
-    select.innerHTML=first+Object.entries(CATS).map(([id,c])=>`<option value="${id}"${c.archived&&select.id==='f-cat'?' disabled':''}>${c.emoji||'●'} ${escapeHtml(c.label)}${c.archived?' (archivovaná)':''}</option>`).join('');
+    select.innerHTML=first+Object.entries(CATS).map(([id,c])=>`<option value="${id}"${c.archived&&select.id==='f-cat'?' disabled':''}>${id==='holiday'?'':(c.emoji||'●')+' '}${escapeHtml(c.label)}${c.archived?' (archivovaná)':''}</option>`).join('');
     if([...select.options].some(o=>o.value===previous))select.value=previous;
   });
 }
@@ -868,15 +887,8 @@ function renderVisibilityUsers(selected=[]){
 
 function onCatChange() {
   const cat = document.getElementById('f-cat').value;
-  const nameEl = document.getElementById('f-name');
   // Auto repeat for birthday and eras
   document.querySelector(`input[name=repeat][value=${(cat === 'birthday' || cat === 'eras') ? 'yearly' : 'none'}]`).checked = true;
-  // Auto emoji — remove any known cat emoji first, then add new one
-  const catEmojis = { birthday: '🌸', vacation: '🌴', eras: '✈️', holiday: '🇨🇿' };
-  let name = nameEl.value;
-  Object.values(catEmojis).forEach(em => { name = name.replace(new RegExp('^' + em + '\\s*'), ''); });
-  const em = catEmojis[cat];
-  nameEl.value = em ? em + ' ' + name : name;
 }
 
 function openAdd(ds){
@@ -897,7 +909,7 @@ function openEdit(id){
   const ev=loadEvents().find(e=>e.id===id);if(!ev)return;
   editId=id;
   document.getElementById('add-title').textContent='Upravit událost';
-  document.getElementById('f-name').value=ev.name;
+  document.getElementById('f-name').value=displayEventName(ev);
   document.getElementById('f-date-from').value=ev.dateFrom;
   document.getElementById('f-date-to').value=ev.dateTo||'';
   document.getElementById('f-cat').value=ev.cat;
@@ -941,9 +953,9 @@ function renderDayList(ds){
   entries.forEach(({ev})=>{
     const cat=CATS[ev.cat]||CATS.event;
     const item=el('div','ev-list-item');
-    const dot=el('div','ev-dot');dot.style.background=cat.bg;dot.style.border='2px solid '+cat.color;item.appendChild(dot);
+    const dot=el('div','ev-dot');dot.style.background=cat.bg;dot.style.border='2px solid '+cat.accent;item.appendChild(dot);
     const info=el('div','ev-info');
-    const nm=el('span','ev-name');nm.textContent=ev.name+(ev.repeat==='yearly'?' ↻':'');info.appendChild(nm);
+    const nm=el('span','ev-name');nm.textContent=displayEventName(ev)+(ev.repeat==='yearly'?' ↻':'');info.appendChild(nm);
     if(ev.note){const nt=el('span','ev-note');nt.textContent=ev.note;info.appendChild(nt);}
     item.appendChild(info);
     if(ev.dateTo){
@@ -984,8 +996,8 @@ function renderManage(){
   evs.forEach(ev=>{
     const cat=CATS[ev.cat]||CATS.event;
     const item=el('div','manage-item');
-    const dot=el('div','mi-dot');dot.style.background=cat.color;item.appendChild(dot);
-    const nm=el('span','mi-name');const vis=ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':'🌐 ';nm.textContent=vis+ev.name;if(ev.note){const meta=el('div','meta-line');meta.textContent=ev.note;nm.appendChild(meta);}item.appendChild(nm);
+    const dot=el('div','mi-dot');dot.style.background=cat.bg;dot.style.border='1px solid '+cat.accent;item.appendChild(dot);
+    const nm=el('span','mi-name');const vis=ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':'🌐 ';nm.textContent=vis+displayEventName(ev);if(ev.note){const meta=el('div','meta-line');meta.textContent=ev.note;nm.appendChild(meta);}item.appendChild(nm);
     const dt=el('span','mi-date');
     const fp=ev.dateFrom.split('-');
     let tx=fp[2]+'.'+fp[1]+'.'+fp[0];
@@ -1019,7 +1031,7 @@ function openCategories(){renderCategories();document.getElementById('categories
 function closeCategories(){document.getElementById('categories-overlay').classList.remove('open');}
 function renderCategories(){
   const list=document.getElementById('category-list');list.replaceChildren();const overrides=window._plannerState?.settings?.categoryColors||{};
-  Object.entries(CATS).forEach(([id,cat])=>{const record=(window._plannerState?.categories||[]).find(c=>c.id===id),row=el('div','color-row');const em=el('span','');em.textContent=cat.emoji||'●';const name=el('span','');name.textContent=cat.label+(cat.archived?' (archivovaná)':'');const color=document.createElement('input');color.type='color';color.value=overrides[id]||cat.color;color.title='Moje barva';color.onchange=()=>saveCategoryColor(id,color.value);row.append(em,name,color);const actions=el('div','');actions.style.display='flex';actions.style.gap='4px';if(record&&(record.createdBy===currentUser()?.uid||window._plannerState?.isAdmin)){const edit=el('button','');edit.textContent='Upravit';edit.onclick=async()=>{const newName=prompt('Název kategorie:',record.name);if(!newName?.trim())return;const newEmoji=prompt('Symbol kategorie:',record.emoji||'●');if(newEmoji===null)return;await window._saveCategory({...record,name:newName.trim(),emoji:newEmoji.trim()||'●'});};actions.appendChild(edit);if(!record.archived){const archive=el('button','');archive.textContent='Archivovat';archive.onclick=async()=>{if(confirm(`Archivovat kategorii „${record.name}“?`))await window._archiveCategory(record);};actions.appendChild(archive);}}row.appendChild(actions);list.appendChild(row);});
+  Object.entries(CATS).forEach(([id,cat])=>{const record=(window._plannerState?.categories||[]).find(c=>c.id===id),row=el('div','color-row');const em=categorySymbol(id,'category-symbol');const name=el('span','');name.textContent=cat.label+(cat.archived?' (archivovaná)':'');const color=document.createElement('input');color.type='color';color.value=overrides[id]||cat.bg;color.title='Barva pozadí';color.setAttribute('aria-label',`Barva pozadí kategorie ${cat.label}`);color.onchange=()=>saveCategoryColor(id,color.value);row.append(em,name,color);const actions=el('div','');actions.style.display='flex';actions.style.gap='4px';if(record&&(record.createdBy===currentUser()?.uid||window._plannerState?.isAdmin)){const edit=el('button','');edit.textContent='Upravit';edit.onclick=async()=>{const newName=prompt('Název kategorie:',record.name);if(!newName?.trim())return;const newEmoji=prompt('Symbol kategorie:',record.emoji||'●');if(newEmoji===null)return;await window._saveCategory({...record,name:newName.trim(),emoji:newEmoji.trim()||'●'});};actions.appendChild(edit);if(!record.archived){const archive=el('button','');archive.textContent='Archivovat';archive.onclick=async()=>{if(confirm(`Archivovat kategorii „${record.name}“?`))await window._archiveCategory(record);};actions.appendChild(archive);}}row.appendChild(actions);list.appendChild(row);});
 }
 async function saveCategoryColor(id,color){const colors={...(window._plannerState?.settings?.categoryColors||{}),[id]:color};await window._saveSettings({categoryColors:colors});}
 async function createCategory(){const name=document.getElementById('new-cat-name').value.trim(),emoji=document.getElementById('new-cat-emoji').value.trim()||'●',color=document.getElementById('new-cat-color').value;if(!name){alert('Zadejte název kategorie.');return;}const id='c_'+crypto.randomUUID().replace(/-/g,'');await window._saveCategory({id,name,emoji,color,archived:false});document.getElementById('new-cat-name').value='';renderCategories();}
@@ -1031,7 +1043,7 @@ function renderListView(){
   const root=document.getElementById('list-view');root.replaceChildren();const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+365);const occurrences=[];
   const years=[start.getFullYear(),end.getFullYear()];const map=buildDateMap(years);
   Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).forEach(([ds,entries])=>{const date=parseDate(ds);if(date<start||date>end)return;entries.filter(x=>x.isStart||x.isOnly).forEach(x=>occurrences.push({ds,ev:x.ev}));});
-  if(!occurrences.length){root.textContent='Žádné nadcházející události.';return;}let last='';occurrences.forEach(({ds,ev})=>{if(ds!==last){const day=el('div','list-day'),h=el('h3','');h.textContent=parseDate(ds).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});day.appendChild(h);root.appendChild(day);last=ds;}const target=root.lastElementChild,item=el('div','list-event'),cat=CATS[ev.cat]||CATS.event;item.style.borderLeftColor=cat.color;item.textContent=`${ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':''}${cat.emoji||''} ${ev.name}${ev.note?' — '+ev.note:''}`;target.appendChild(item);});
+  if(!occurrences.length){root.textContent='Žádné nadcházející události.';return;}let last='';occurrences.forEach(({ds,ev})=>{if(ds!==last){const day=el('div','list-day'),h=el('h3','');h.textContent=parseDate(ds).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});day.appendChild(h);root.appendChild(day);last=ds;}const target=root.lastElementChild,item=el('div','list-event'),cat=CATS[ev.cat]||CATS.event;item.style.borderLeftColor=cat.accent;item.textContent=`${ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':''}${cat.emoji||''} ${displayEventName(ev)}${ev.note?' — '+ev.note:''}`;target.appendChild(item);});
 }
 
 function openExport(){
@@ -1142,9 +1154,9 @@ function renderReminders() {
       if (seen.has(ev.id)) return; seen.add(ev.id);
       const cat = CATS[ev.cat] || CATS.event;
       const item = el('div','rem-item');
-      const dot = el('div','rem-dot'); dot.style.background = cat.bg; dot.style.border = '2px solid ' + cat.color; item.appendChild(dot);
+      const dot = el('div','rem-dot'); dot.style.background = cat.bg; dot.style.border = '2px solid ' + cat.accent; item.appendChild(dot);
       const emoji = cat.emoji || '';
-      const txt = document.createTextNode(`${emoji} ${ev.name}`);
+      const txt = document.createTextNode(`${emoji} ${displayEventName(ev)}`);
       item.appendChild(txt);
       if (ev.note) {
         const note = el('span',''); note.style.cssText='font-size:11px;color:var(--gray-400);margin-left:6px;';
@@ -1180,7 +1192,7 @@ function openCtxMenu(e, entries, ds, cell) {
   ctxEventId = pickedEntry.ev.id;
   ctxEventData = pickedEntry.ev;
   ctxDateStr = ds;
-  document.getElementById('ctx-title').textContent = pickedEntry.ev.name;
+  document.getElementById('ctx-title').textContent = displayEventName(pickedEntry.ev);
   ctxMenu.classList.add('open');
   // Position after display so we know menu dimensions
   requestAnimationFrame(() => {
@@ -1203,7 +1215,7 @@ function ctxEdit() {
   if (!ev) return;
   editId = ev.id;
   document.getElementById('add-title').textContent = 'Upravit událost';
-  document.getElementById('f-name').value = ev.name;
+  document.getElementById('f-name').value = displayEventName(ev);
   document.getElementById('f-date-from').value = ev.dateFrom;
   document.getElementById('f-date-to').value = ev.dateTo || '';
   document.getElementById('f-cat').value = ev.cat;
@@ -1220,7 +1232,7 @@ async function ctxCopy() {
   if (!ev) return;
   editId = null;
   document.getElementById('add-title').textContent = 'Kopírovat událost';
-  document.getElementById('f-name').value = ev.name;
+  document.getElementById('f-name').value = displayEventName(ev);
   document.getElementById('f-date-from').value = ev.dateFrom;
   document.getElementById('f-date-to').value = ev.dateTo || '';
   document.getElementById('f-cat').value = ev.cat;

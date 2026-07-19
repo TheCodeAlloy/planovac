@@ -4,7 +4,7 @@
 
 Roční plánovač zobrazuje dvanáct po sobě jdoucích měsíců v jedné tabulce. Uživatelé mohou vytvářet jednodenní i vícedenní události, opakovat je každý rok, filtrovat kategorie, události upravovat, kopírovat, přesouvat a exportovat.
 
-Obecné události jsou v kalendáři označené kontrastním symbolem `★` v samostatném světlém nebo tmavém odznaku, aby symbol zůstal čitelný i na žlutém pozadí kategorie.
+Obecné události jsou v kalendáři označené malou světle modrou tečkou. Narozeniny a svátky používají symbol `🎂`; státní svátky mají malou českou vlajku vykreslenou přímo aplikací, takže nezávisí na podpoře vlajkových emoji ve Windows.
 
 ## Rozšířené funkce
 
@@ -16,7 +16,7 @@ Obecné události jsou v kalendáři označené kontrastním symbolem `★` v sa
 - **Rozšířená správa událostí** – hledání v názvu, poznámce, datu a kategorii, filtrování a řazení.
 - **Viditelnost událostí** – pro všechny, soukromá nebo pro vybrané uživatele.
 - **Vlastní společné kategorie** – všichni členové je mohou vytvářet, autor nebo administrátor je může upravit či archivovat.
-- **Osobní barvy kategorií** – každý uživatel může zobrazovací barvu změnit pouze pro sebe.
+- **Osobní barvy kategorií** – každý uživatel si vybírá pouze barvu pozadí; aplikace automaticky zvolí tmavé nebo světlé písmo s lepším kontrastem.
 
 Veřejná adresa aplikace je:
 

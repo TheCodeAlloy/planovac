@@ -35,8 +35,15 @@ for (const feature of [
   "window._dbTrash",
   "window._dbRestore",
   "window._approveUser",
+  "function contrastText(bg)",
+  "function categorySymbol(catId",
+  "birthday:['🎂','🌸']",
 ]) {
   if (!html.includes(feature)) throw new Error(`Chybí implementace: ${feature}`);
+}
+
+if (html.includes("icon.textContent='★'")) {
+  throw new Error('Obecná událost stále používá hvězdičku místo malé tečky.');
 }
 
 const rules = fs.readFileSync('firestore.rules', 'utf8');
