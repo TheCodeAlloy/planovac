@@ -4,7 +4,7 @@
 
 Roční plánovač zobrazuje dvanáct po sobě jdoucích měsíců v jedné tabulce. Uživatelé mohou vytvářet jednodenní i vícedenní události, opakovat je každý rok, filtrovat kategorie, události upravovat, kopírovat, přesouvat a exportovat.
 
-Obecné události jsou v kalendáři označené malou světle modrou tečkou. Narozeniny a svátky používají symbol `🎂`; státní svátky mají malou českou vlajku vykreslenou přímo aplikací, takže nezávisí na podpoře vlajkových emoji ve Windows.
+Obecné události jsou v kalendáři označené malou světle modrou tečkou. Narozeniny a svátky používají symbol `🎂`; státní svátky označuje symbol `🏛️`.
 
 ## Rozšířené funkce
 

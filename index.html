@@ -99,8 +99,6 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
 .cell-category-icon { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); z-index: 1; width: 14px; height: 14px; display:grid; place-items:center; background:transparent; font-size:11px; line-height:1; pointer-events:none; }
 body.dark .cell-event-icon { background: #7ac9f1; border-color: rgba(255,255,255,0.45); box-shadow: 0 0 0 1px rgba(0,0,0,0.25); }
 .category-symbol { width:24px; display:grid; place-items:center; }
-.cz-flag { position:relative; display:inline-block; width:13px; height:9px; overflow:hidden; border:1px solid rgba(0,0,0,.25); background:linear-gradient(to bottom,#fff 0 50%,#d7141a 50% 100%); box-sizing:border-box; }
-.cz-flag::before { content:""; position:absolute; left:0; top:0; width:0; height:0; border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid #11457e; }
 .visibility-marker { position:absolute; right:2px; top:1px; z-index:2; font-size:9px; line-height:1; filter:drop-shadow(0 1px 1px rgba(255,255,255,.8)); pointer-events:none; }
 .dc:not(.empty):hover .cell-bg { filter: brightness(0.92); }
 .dc:not(.empty):hover .cell-strip { filter: brightness(0.92); }
@@ -316,7 +314,7 @@ body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-wid
     <div class="form-row">
       <label>Kategorie</label>
       <select id="f-cat" onchange="onCatChange()">
-        <option value="holiday">St.svat</option>
+        <option value="holiday">🏛️ St.svat</option>
         <option value="birthday">🎂 Nar/Sv</option>
         <option value="vacation">🌴 Dovolená</option>
         <option value="event">● Událost</option>
@@ -531,7 +529,7 @@ window._dbReady = true;
 const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
 const BASE_CATS = {
-  holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '' },
+  holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '🏛️' },
   birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv',   emoji: '🎂' },
   vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená', emoji: '🌴' },
   event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost',   emoji: '●' },
@@ -544,8 +542,7 @@ function accentColor(bg){const [r,g,b]=colorRgb(bg);return`rgb(${Math.round(r*.6
 function categoryStyle(base,bg){return{...base,bg,color:contrastText(bg),accent:accentColor(bg)};}
 function categorySymbol(catId,className='cell-category-icon'){
   const icon=el('span',className),cat=CATS[catId]||CATS.event;
-  if(catId==='holiday')icon.appendChild(el('span','cz-flag'));
-  else icon.textContent=cat.emoji||'●';
+  icon.textContent=cat.emoji||'●';
   return icon;
 }
 function displayEventName(ev){
@@ -871,7 +868,7 @@ function refreshCategoryControls(){
   selects.forEach(select=>{
     const previous=select.value;
     const first=select.id==='manage-cat'?'<option value="">Všechny kategorie</option>':'';
-    select.innerHTML=first+Object.entries(CATS).map(([id,c])=>`<option value="${id}"${c.archived&&select.id==='f-cat'?' disabled':''}>${id==='holiday'?'':(c.emoji||'●')+' '}${escapeHtml(c.label)}${c.archived?' (archivovaná)':''}</option>`).join('');
+    select.innerHTML=first+Object.entries(CATS).map(([id,c])=>`<option value="${id}"${c.archived&&select.id==='f-cat'?' disabled':''}>${c.emoji||'●'} ${escapeHtml(c.label)}${c.archived?' (archivovaná)':''}</option>`).join('');
     if([...select.options].some(o=>o.value===previous))select.value=previous;
   });
 }

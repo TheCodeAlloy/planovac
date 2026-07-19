@@ -38,6 +38,7 @@ for (const feature of [
   "function contrastText(bg)",
   "function categorySymbol(catId",
   "birthday:['🎂','🌸']",
+  "emoji: '🏛️'",
 ]) {
   if (!html.includes(feature)) throw new Error(`Chybí implementace: ${feature}`);
 }
@@ -48,6 +49,10 @@ if (html.includes("icon.textContent='★'")) {
 
 if (/\.cell-category-icon\s*\{[^}]*background\s*:\s*rgba\(255,255,255/i.test(html)) {
   throw new Error('Ikony kategorií stále používají bílý kruhový podklad.');
+}
+
+if (html.includes('.cz-flag')) {
+  throw new Error('Ve zdroji zůstala původní výrazná česká vlajka.');
 }
 
 const rules = fs.readFileSync('firestore.rules', 'utf8');
