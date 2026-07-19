@@ -63,7 +63,7 @@ Role je bezpečnostně významná. `admin` může spravovat uživatele a pozván
 ### Přidání uživatele
 
 1. Administrátor otevře **Menu → Uživatelé**.
-2. Zadá e-mail Google účtu a klikne na **Pozvat uživatele**.
+2. Zadá e-mail Google účtu a klikne na **Povolit přístup**.
 3. Pozvánka se zobrazí jako „Pozván – dosud se nepřihlásil“.
 4. Uživatel se poprvé přihlásí přes přesně stejný Google e-mail.
 5. Aplikace automaticky vytvoří jeho účet v `authorizedUsers` s rolí `member` a čekající pozvánku odstraní.

@@ -21,7 +21,7 @@ Podrobný popis funkcí, dat, zabezpečení, připomínek a správy je v
 Administrátor může uživatele pozvat ještě před prvním přihlášením:
 
 1. V plánovači otevře **Menu → Uživatelé**.
-2. Zadá e-mail Google účtu a zvolí **Pozvat uživatele**.
+2. Zadá e-mail Google účtu a zvolí **Povolit přístup**.
 3. Pozvánka se uloží do `userInvites` jako čekající člen.
 4. Při prvním přihlášení přes přesně stejný Google e-mail se účet automaticky přidá do `authorizedUsers` a pozvánka se odstraní.
 

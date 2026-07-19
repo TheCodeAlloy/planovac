@@ -15,6 +15,7 @@
 }
 html, body { height: 100%; font-family: var(--font); background: var(--gray-50); color: var(--gray-800); overflow: hidden; }
 body { display: flex; flex-direction: column; }
+body:not(.access-granted) > :not(#pin-screen):not(script) { display: none !important; }
 body.dark {
   --gray-50: #1a1918; --gray-100: #242322; --gray-200: #3a3836;
   --gray-400: #7a7773; --gray-600: #b0ada8; --gray-800: #e8e6e2;
@@ -400,7 +401,7 @@ body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-wid
     <p style="font-size:11px;color:var(--gray-400);margin-bottom:8px">Schválení uživatelé, e-mailové pozvánky a žádosti o přístup.</p>
     <div class="inline-controls" id="invite-controls" style="display:none">
       <input type="email" id="invite-email" placeholder="E-mail Google účtu" aria-label="E-mail nového uživatele">
-      <button onclick="inviteUser()">Pozvat uživatele</button>
+      <button onclick="inviteUser()">Povolit přístup</button>
     </div>
     <div id="users-list"></div>
     <div class="modal-btns"><button onclick="closeUsers()">Zavřít</button></div>
@@ -524,7 +525,8 @@ window._authLogout = async function() { await signOut(auth); };
 onAuthStateChanged(auth, async (user) => {
   stopListeners();
   Object.assign(dataState,{publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],invitations:[],user,authorized:false,isAdmin:false});
-  document.getElementById('pin-screen').style.display = user ? 'none' : 'flex';
+  document.body.classList.remove('access-granted');
+  document.getElementById('pin-screen').style.display = 'flex';
   if (!user) {
     document.querySelector('#pin-screen .pin-subtitle').textContent='Přihlaste se ke svým datům';
     const loginButton=document.querySelector('#pin-screen .login-form button');loginButton.textContent='G  Přihlásit přes Google';loginButton.onclick=()=>loginPlanner();
@@ -558,6 +560,8 @@ onAuthStateChanged(auth, async (user) => {
     emit();return;
   }
   dataState.authorized=true;dataState.isAdmin=authData.role==='admin';
+  document.body.classList.add('access-granted');
+  document.getElementById('pin-screen').style.display='none';
   await setDoc(authRef,{displayName:user.displayName||'',email:user.email||'',photoURL:user.photoURL||'',lastLoginAt:new Date().toISOString()},{merge:true});
   syncEl.textContent = '⟳ připojuji...';
   const onError=(err)=>{syncEl.textContent='● chyba přístupu';syncEl.className='err';console.error(err);};

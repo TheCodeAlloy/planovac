@@ -76,6 +76,15 @@ if (!html.includes('📆 Příštích 7 dní') || !html.includes('☰ Menu')) {
   throw new Error('Horní lišta neobsahuje přehled sedmi dnů a nové Menu.');
 }
 
+if (!html.includes('body:not(.access-granted) > :not(#pin-screen):not(script)')
+    || !html.includes("document.body.classList.add('access-granted')")) {
+  throw new Error('Plánovač není skrytý až do ověření oprávnění.');
+}
+
+if (!html.includes('>Povolit přístup</button>') || html.includes('>Pozvat uživatele</button>')) {
+  throw new Error('Tlačítko pro povolení přístupu má nesprávný text.');
+}
+
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 for (const protectedPath of [
   'privateEvents',
