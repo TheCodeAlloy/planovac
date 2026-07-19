@@ -11,6 +11,15 @@ if (scripts.length !== 2) {
 new Function(scripts[0].replace(/^import .*;$/gm, ''));
 new Function(scripts[1]);
 
+const allScriptCode = scripts.join('\n');
+const inlineHandlers = [...html.matchAll(/\bon(?:click|change|input|mousedown|keydown)="([^"]+)"/g)]
+  .flatMap(match => [...match[1].matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(call => call[1]));
+for (const handler of new Set(inlineHandlers)) {
+  if (!allScriptCode.includes(`function ${handler}(`) && !allScriptCode.includes(`window.${handler} =`)) {
+    throw new Error(`Inline ovladač volá chybějící funkci ${handler}().`);
+  }
+}
+
 for (const required of [
   'planner',
   'sync-status',
@@ -21,6 +30,10 @@ for (const required of [
   'users-overlay',
   'categories-overlay',
   'list-view',
+  'top-menu',
+  'top-menu-btn',
+  'invite-email',
+  'invite-controls',
 ]) {
   if (!html.includes(`id="${required}"`)) {
     throw new Error(`Chybí prvek #${required}.`);
@@ -35,6 +48,10 @@ for (const feature of [
   "window._dbTrash",
   "window._dbRestore",
   "window._approveUser",
+  "window._inviteUser",
+  "window._removeInvite",
+  "collection(db,'userInvites')",
+  "function toggleTopMenu()",
   "function contrastText(bg)",
   "function categorySymbol(catId",
   "birthday:['🎂','🌸']",
@@ -55,6 +72,10 @@ if (html.includes('.cz-flag')) {
   throw new Error('Ve zdroji zůstala původní výrazná česká vlajka.');
 }
 
+if (!html.includes('📆 Příštích 7 dní') || !html.includes('☰ Menu')) {
+  throw new Error('Horní lišta neobsahuje přehled sedmi dnů a nové Menu.');
+}
+
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 for (const protectedPath of [
   'privateEvents',
@@ -63,8 +84,18 @@ for (const protectedPath of [
   'accessRequests',
   'userSettings',
   'categories',
+  'userInvites',
 ]) {
   if (!rules.includes(protectedPath)) throw new Error(`Pravidla neobsahují ${protectedPath}.`);
+}
+
+for (const inviteProtection of [
+  'function verifiedEmail()',
+  'request.auth.token.email == email',
+  'request.resource.data.email == request.auth.token.email',
+  'request.resource.data.role == get(/databases/$(database)/documents/userInvites/',
+]) {
+  if (!rules.includes(inviteProtection)) throw new Error(`Pozvánky nemají kontrolu: ${inviteProtection}`);
 }
 
 if (html.includes("CORRECT_PIN") || html.includes("const SESSION_KEY")) {

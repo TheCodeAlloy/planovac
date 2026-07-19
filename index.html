@@ -36,7 +36,7 @@ body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
 #topbar {
   display: flex; align-items: center; gap: 10px;
   padding: 0 14px; background: #1c1c1c; color: #fff;
-  min-height: 46px; flex-shrink: 0;
+  min-height: 46px; flex-shrink: 0; position: relative; z-index: 50;
 }
 #topbar h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
 .year-nav { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
@@ -49,6 +49,14 @@ body.dark #export-area { background: #333; color: #e8e6e2; border-color: #444; }
 .leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .top-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; padding: 5px 9px; cursor: pointer; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
 .top-btn:hover { background: rgba(255,255,255,0.2); }
+.top-menu-wrap { position:relative; flex-shrink:0; }
+.top-menu { display:none; position:absolute; right:0; top:calc(100% + 7px); min-width:215px; padding:5px 0; border-radius:8px; background:#fff; color:var(--gray-800); box-shadow:0 6px 24px rgba(0,0,0,.28); z-index:1200; }
+.top-menu.open { display:block; }
+.top-menu button { display:flex; align-items:center; width:100%; gap:8px; padding:8px 13px; border:0; background:transparent; color:inherit; font-size:13px; text-align:left; cursor:pointer; white-space:nowrap; }
+.top-menu button:hover { background:var(--gray-50); }
+.top-menu .menu-sep { height:1px; margin:4px 0; background:var(--gray-100); }
+body.dark .top-menu { background:#2a2928; color:#e8e6e2; }
+body.dark .top-menu button:hover { background:#333; }
 #upcoming-badge { font-size: 11px; color: rgba(255,255,255,0.6); white-space: nowrap; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.15); padding-left: 10px; }
 #upcoming-badge span { color: #f9c74f; font-weight: 600; }
 #sync-status { font-size: 11px; color: rgba(255,255,255,0.5); flex-shrink: 0; }
@@ -283,16 +291,23 @@ body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-wid
   </div>
   <div id="upcoming-badge"></div>
   <span id="sync-status">⟳ připojuji...</span>
-  <button class="top-btn" onclick="openAdd()">+ Přidat</button>
   <button class="top-btn" onclick="openReminders()">📆 Příštích 7 dní</button>
-  <button class="top-btn" onclick="openManage()">☰ Správa</button>
-  <button class="top-btn" id="view-btn" onclick="cycleView()">▦ Rok</button>
-  <button class="top-btn" onclick="openCategories()">🎨 Kategorie</button>
-  <button class="top-btn" onclick="openUsers()">👥 Uživatelé</button>
-  <button class="top-btn" onclick="openTrash()">🗑 Koš</button>
-  <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
-  <button class="top-btn" onclick="openExport()">⬇ Export</button>
-  <button class="top-btn" onclick="logoutPlanner()">↪ Odhlásit</button>
+  <div class="top-menu-wrap">
+    <button class="top-btn" id="top-menu-btn" onclick="toggleTopMenu()" aria-expanded="false" aria-controls="top-menu">☰ Menu</button>
+    <div class="top-menu" id="top-menu">
+      <button onclick="openAdd();closeTopMenu()">＋ Přidat událost</button>
+      <button onclick="openManage();closeTopMenu()">☰ Správa událostí</button>
+      <button id="view-btn" onclick="cycleView();closeTopMenu()">▦ Rok</button>
+      <div class="menu-sep"></div>
+      <button onclick="openCategories();closeTopMenu()">🎨 Kategorie</button>
+      <button onclick="openUsers();closeTopMenu()">👥 Uživatelé</button>
+      <button onclick="openTrash();closeTopMenu()">🗑 Koš</button>
+      <div class="menu-sep"></div>
+      <button id="dark-btn" onclick="toggleDark();closeTopMenu()">🌙 Tmavý režim</button>
+      <button onclick="openExport();closeTopMenu()">⬇ Export</button>
+      <button onclick="logoutPlanner();closeTopMenu()">↪ Odhlásit se</button>
+    </div>
+  </div>
 </div>
 
 <div id="grid-outer"><div id="planner"></div></div>
@@ -379,7 +394,18 @@ body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-wid
 <div class="overlay" id="trash-overlay"><div class="modal" style="width:560px"><h2>🗑 Koš</h2><div id="trash-list"></div><div class="modal-btns"><button onclick="closeTrash()">Zavřít</button></div></div></div>
 
 <!-- USERS MODAL -->
-<div class="overlay" id="users-overlay"><div class="modal" style="width:600px"><h2>👥 Uživatelé</h2><p style="font-size:11px;color:var(--gray-400);margin-bottom:8px">Schválení uživatelé a žádosti o přístup.</p><div id="users-list"></div><div class="modal-btns"><button onclick="closeUsers()">Zavřít</button></div></div></div>
+<div class="overlay" id="users-overlay">
+  <div class="modal" style="width:600px">
+    <h2>👥 Uživatelé</h2>
+    <p style="font-size:11px;color:var(--gray-400);margin-bottom:8px">Schválení uživatelé, e-mailové pozvánky a žádosti o přístup.</p>
+    <div class="inline-controls" id="invite-controls" style="display:none">
+      <input type="email" id="invite-email" placeholder="E-mail Google účtu" aria-label="E-mail nového uživatele">
+      <button onclick="inviteUser()">Pozvat uživatele</button>
+    </div>
+    <div id="users-list"></div>
+    <div class="modal-btns"><button onclick="closeUsers()">Zavřít</button></div>
+  </div>
+</div>
 
 <!-- CATEGORIES MODAL -->
 <div class="overlay" id="categories-overlay"><div class="modal" style="width:620px"><h2>🎨 Kategorie</h2><div id="category-list"></div><h2 style="margin-top:16px">Nová kategorie</h2><div class="inline-controls"><input id="new-cat-emoji" placeholder="Symbol" maxlength="4" value="●"><input id="new-cat-name" placeholder="Název"><input id="new-cat-color" type="color" value="#4a90e2"><button onclick="createCategory()">Vytvořit</button></div><div class="modal-btns"><button onclick="closeCategories()">Zavřít</button></div></div></div>
@@ -443,7 +469,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const syncEl = document.getElementById('sync-status');
 let listeners = [];
-let dataState = {publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],user:null,authorized:false,isAdmin:false};
+let dataState = {publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],invitations:[],user:null,authorized:false,isAdmin:false};
 
 function stopListeners(){listeners.forEach(fn=>fn());listeners=[];}
 function emit(){window.dispatchEvent(new CustomEvent('planner-data'));}
@@ -481,6 +507,15 @@ window._saveSettings = async function(patch){await setDoc(doc(db,'userSettings',
 window._approveUser = async function(request){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');await setDoc(doc(db,'authorizedUsers',request.id),{role:'member',displayName:request.displayName||'',email:request.email||'',photoURL:request.photoURL||'',approvedAt:new Date().toISOString(),approvedBy:currentUid()});await deleteDoc(doc(db,'accessRequests',request.id));};
 window._removeUser = async function(user){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');if(user.id===currentUid())throw new Error('Nelze odebrat vlastní účet.');await deleteDoc(doc(db,'authorizedUsers',user.id));};
 window._setUserRole = async function(user,role){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');await setDoc(doc(db,'authorizedUsers',user.id),{role},{merge:true});};
+window._inviteUser = async function(email){
+  if(!dataState.isAdmin)throw new Error('Pouze administrátor.');
+  const normalized=String(email||'').trim().toLowerCase();
+  if(!/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(normalized))throw new Error('Zadejte platný e-mail Google účtu.');
+  if(dataState.users.some(user=>String(user.email||'').toLowerCase()===normalized))throw new Error('Tento uživatel už má přístup.');
+  if(dataState.invitations.some(invite=>invite.id===normalized))throw new Error('Pro tento e-mail už pozvánka existuje.');
+  await setDoc(doc(db,'userInvites',normalized),{email:normalized,role:'member',invitedAt:new Date().toISOString(),invitedBy:currentUid()});
+};
+window._removeInvite = async function(invite){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');await deleteDoc(doc(db,'userInvites',invite.id));};
 
 const googleProvider = new GoogleAuthProvider();
 window._authLogin = async function() { await signInWithPopup(auth, googleProvider); };
@@ -488,7 +523,7 @@ window._authLogout = async function() { await signOut(auth); };
 
 onAuthStateChanged(auth, async (user) => {
   stopListeners();
-  Object.assign(dataState,{publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],user,authorized:false,isAdmin:false});
+  Object.assign(dataState,{publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],invitations:[],user,authorized:false,isAdmin:false});
   document.getElementById('pin-screen').style.display = user ? 'none' : 'flex';
   if (!user) {
     document.querySelector('#pin-screen .pin-subtitle').textContent='Přihlaste se ke svým datům';
@@ -498,10 +533,23 @@ onAuthStateChanged(auth, async (user) => {
     emit();
     return;
   }
-  const authRef=doc(db,'authorizedUsers',user.uid);
-  let authDoc;
-  try{authDoc=await getDoc(authRef);}catch(err){console.error(err);syncEl.textContent='● nelze ověřit přístup';syncEl.className='err';document.getElementById('pin-screen').style.display='flex';document.querySelector('#pin-screen .pin-subtitle').textContent='Přístup se nepodařilo ověřit. Zkuste stránku obnovit.';emit();return;}
-  if(!authDoc.exists()){
+  const authRef=doc(db,'authorizedUsers',user.uid),email=String(user.email||'').trim().toLowerCase(),inviteRef=email?doc(db,'userInvites',email):null;
+  let authData=null;
+  try{
+    const authDoc=await getDoc(authRef);
+    if(authDoc.exists())authData=authDoc.data();
+    if(!authData&&inviteRef){
+      const inviteDoc=await getDoc(inviteRef);
+      if(inviteDoc.exists()){
+        const invite=inviteDoc.data();
+        authData={role:invite.role==='admin'?'admin':'member',displayName:user.displayName||'',email,photoURL:user.photoURL||'',approvedAt:new Date().toISOString(),approvedBy:invite.invitedBy||'invitation'};
+        await setDoc(authRef,authData);
+        try{await deleteDoc(inviteRef);}catch(cleanupError){console.warn('Pozvánku se nepodařilo po aktivaci odstranit.',cleanupError);}
+        try{await deleteDoc(doc(db,'accessRequests',user.uid));}catch(cleanupError){console.warn('Starou žádost se nepodařilo odstranit.',cleanupError);}
+      }
+    }
+  }catch(err){console.error(err);syncEl.textContent='● nelze ověřit přístup';syncEl.className='err';document.getElementById('pin-screen').style.display='flex';document.querySelector('#pin-screen .pin-subtitle').textContent='Přístup se nepodařilo ověřit. Zkuste stránku obnovit.';emit();return;}
+  if(!authData){
     await setDoc(doc(db,'accessRequests',user.uid),{displayName:user.displayName||'',email:user.email||'',photoURL:user.photoURL||'',requestedAt:new Date().toISOString()},{merge:true});
     syncEl.textContent='● čeká na schválení';syncEl.className='err';
     document.getElementById('pin-screen').style.display='flex';
@@ -509,7 +557,7 @@ onAuthStateChanged(auth, async (user) => {
     const loginButton=document.querySelector('#pin-screen .login-form button');loginButton.textContent='Odhlásit a zvolit jiný účet';loginButton.onclick=()=>logoutPlanner();
     emit();return;
   }
-  dataState.authorized=true;dataState.isAdmin=authDoc.data().role==='admin';
+  dataState.authorized=true;dataState.isAdmin=authData.role==='admin';
   await setDoc(authRef,{displayName:user.displayName||'',email:user.email||'',photoURL:user.photoURL||'',lastLoginAt:new Date().toISOString()},{merge:true});
   syncEl.textContent = '⟳ připojuji...';
   const onError=(err)=>{syncEl.textContent='● chyba přístupu';syncEl.className='err';console.error(err);};
@@ -519,7 +567,10 @@ onAuthStateChanged(auth, async (user) => {
   watch(collection(db,'categories'),snapshot=>{dataState.categories=documents(snapshot,'category');emit();},onError);
   watch(doc(db,'userSettings',user.uid),snapshot=>{dataState.settings=snapshot.exists()?snapshot.data():{};emit();},onError);
   watch(collection(db,'authorizedUsers'),snapshot=>{dataState.users=documents(snapshot,'user');emit();},onError);
-  if(dataState.isAdmin)watch(collection(db,'accessRequests'),snapshot=>{dataState.requests=documents(snapshot,'request');emit();},onError);
+  if(dataState.isAdmin){
+    watch(collection(db,'accessRequests'),snapshot=>{dataState.requests=documents(snapshot,'request');emit();},onError);
+    watch(collection(db,'userInvites'),snapshot=>{dataState.invitations=documents(snapshot,'invitation');emit();},onError);
+  }
   emit();
 });
 window._dbReady = true;
@@ -858,8 +909,11 @@ function render(){
 
 function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 function toggleCat(cat){hiddenCats.has(cat)?hiddenCats.delete(cat):hiddenCats.add(cat);document.getElementById('leg-'+cat).classList.toggle('off');render();}
-function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);document.getElementById('dark-btn').textContent=darkMode?'☀️':'🌙';localStorage.setItem('planner_dark',darkMode?'1':'0');}
-if(darkMode)document.getElementById('dark-btn').textContent='☀️';
+function closeTopMenu(){const menu=document.getElementById('top-menu'),button=document.getElementById('top-menu-btn');menu.classList.remove('open');button.setAttribute('aria-expanded','false');}
+function toggleTopMenu(){const menu=document.getElementById('top-menu'),open=!menu.classList.contains('open');menu.classList.toggle('open',open);document.getElementById('top-menu-btn').setAttribute('aria-expanded',String(open));}
+function updateDarkButton(){document.getElementById('dark-btn').textContent=darkMode?'☀️ Světlý režim':'🌙 Tmavý režim';}
+function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);updateDarkButton();localStorage.setItem('planner_dark',darkMode?'1':'0');}
+updateDarkButton();
 
 function currentUser(){return window._plannerState?.user||null;}
 function canModifyEvent(ev){return !ev.visibility||ev.visibility==='all'||ev.ownerUid===currentUser()?.uid||window._plannerState?.isAdmin;}
@@ -1017,10 +1071,20 @@ function renderTrash(){
 
 function openUsers(){renderUsers();document.getElementById('users-overlay').classList.add('open');}
 function closeUsers(){document.getElementById('users-overlay').classList.remove('open');}
+async function inviteUser(){
+  const input=document.getElementById('invite-email'),email=input.value.trim();
+  try{await window._inviteUser(email);input.value='';}
+  catch(err){alert(err.message||'Pozvánku se nepodařilo vytvořit.');}
+}
 function renderUsers(){
   const list=document.getElementById('users-list');list.replaceChildren();const state=window._plannerState||{};
-  if(!state.isAdmin){const p=el('div','empty-day');p.textContent='Seznam můžete zobrazit, ale schvalovat a odebírat uživatele může pouze administrátor.';list.appendChild(p);}
+  document.getElementById('invite-controls').style.display=state.isAdmin?'flex':'none';
+  if(!state.isAdmin){const p=el('div','empty-day');p.textContent='Seznam můžete zobrazit, ale zvát, schvalovat a odebírat uživatele může pouze administrátor.';list.appendChild(p);}
   (state.users||[]).forEach(user=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=user.displayName||user.email||user.id;const meta=el('div','meta-line');meta.textContent=user.email||'';info.appendChild(meta);item.appendChild(info);if(state.isAdmin&&user.id!==state.user?.uid){const role=document.createElement('select');role.innerHTML='<option value="member">Člen</option><option value="admin">Administrátor</option>';role.value=user.role||'member';role.onchange=()=>window._setUserRole(user,role.value);item.appendChild(role);const remove=el('button','');remove.textContent='Odebrat';remove.onclick=async()=>{if(confirm(`Odebrat přístup uživateli ${user.displayName||user.email}?`)){await window._removeUser(user);renderUsers();}};item.appendChild(remove);}else{const badge=el('span','');badge.textContent=user.role==='admin'?'Administrátor':'Člen';item.appendChild(badge);}list.appendChild(item);});
+  if(state.isAdmin&&(state.invitations||[]).length){
+    const title=el('h2','');title.style.marginTop='16px';title.textContent='Čekající pozvánky';list.appendChild(title);
+    state.invitations.forEach(invite=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=invite.email||invite.id;const meta=el('div','meta-line');meta.textContent='Pozván – dosud se nepřihlásil';info.appendChild(meta);const cancel=el('button','');cancel.textContent='Zrušit pozvánku';cancel.onclick=async()=>{if(confirm(`Zrušit pozvánku pro ${invite.email||invite.id}?`))await window._removeInvite(invite);};item.append(info,cancel);list.appendChild(item);});
+  }
   if(state.isAdmin&&(state.requests||[]).length){const title=el('h2','');title.style.marginTop='16px';title.textContent='Žádosti o přístup';list.appendChild(title);state.requests.forEach(req=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=req.displayName||req.email||req.id;const approve=el('button','');approve.textContent='Schválit';approve.onclick=async()=>{await window._approveUser(req);renderUsers();};item.append(info,approve);list.appendChild(item);});}
 }
 
@@ -1109,7 +1173,7 @@ function downloadIcs(){
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay','trash-overlay','users-overlay','categories-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if(e.key==='Escape'){['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay','trash-overlay','users-overlay','categories-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));closeTopMenu();}
   if(e.altKey&&e.key==='ArrowLeft')shiftWindow(-1);
   if(e.altKey&&e.key==='ArrowRight')shiftWindow(1);
   if(e.altKey&&e.key==='t')goToday();
@@ -1239,7 +1303,7 @@ async function ctxCopy() {
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(() => document.getElementById('f-name').focus(), 50);
 }
-document.addEventListener('mousedown', e => { if (!ctxMenu.contains(e.target)) closeCtxMenu(); });
+document.addEventListener('mousedown', e => {if (!ctxMenu.contains(e.target))closeCtxMenu();if(!document.querySelector('.top-menu-wrap').contains(e.target))closeTopMenu();});
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
 
 // ── AUTHENTICATION ──

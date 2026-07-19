@@ -3,6 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
+    function verifiedEmail() {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true;
+    }
     function authorized() {
       return signedIn()
         && exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid));
@@ -93,7 +98,16 @@ service cloud.firestore {
     match /authorizedUsers/{userId} {
       allow get: if signedIn() && (request.auth.uid == userId || authorized());
       allow list: if authorized();
-      allow create, delete: if admin();
+      allow create: if admin() || (verifiedEmail()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'role','displayName','email','photoURL','approvedAt','approvedBy'
+        ])
+        && request.resource.data.email == request.auth.token.email
+        && exists(/databases/$(database)/documents/userInvites/$(request.auth.token.email))
+        && request.resource.data.role == get(/databases/$(database)/documents/userInvites/$(request.auth.token.email)).data.role
+        && request.resource.data.approvedBy == get(/databases/$(database)/documents/userInvites/$(request.auth.token.email)).data.invitedBy);
+      allow delete: if admin();
       allow update: if admin() || (authorized() && request.auth.uid == userId
         && request.resource.data.role == resource.data.role
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -104,7 +118,22 @@ service cloud.firestore {
     match /accessRequests/{userId} {
       allow create, update: if signedIn() && request.auth.uid == userId;
       allow read: if signedIn() && (request.auth.uid == userId || admin());
-      allow delete: if admin();
+      allow delete: if admin() || (signedIn() && request.auth.uid == userId);
+    }
+
+    match /userInvites/{email} {
+      allow get: if signedIn() && (admin()
+        || verifiedEmail() && request.auth.token.email == email);
+      allow list: if admin();
+      allow create, update: if admin()
+        && request.resource.data.keys().hasOnly(['email','role','invitedAt','invitedBy'])
+        && request.resource.data.email == email
+        && request.resource.data.email.matches('^[^/]+@[^/]+$')
+        && request.resource.data.role in ['member','admin']
+        && request.resource.data.invitedAt is string
+        && request.resource.data.invitedBy == request.auth.uid;
+      allow delete: if admin() || (verifiedEmail()
+        && request.auth.token.email == email);
     }
 
     match /{document=**} { allow read, write: if false; }

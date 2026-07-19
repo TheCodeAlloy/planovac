@@ -11,13 +11,14 @@ upravovat, kopírovat, přesouvat a mazat jednodenní i vícedenní události.
 Události mohou být jednorázové nebo každoročně opakované a jsou rozdělené do
 kategorií.
 
-Obecné události mají kontrastní symbol hvězdy v samostatném odznaku, aby byl
-viditelný i na žlutém pozadí kategorie.
+Obecné události mají malou světle modrou tečku. Narozeniny používají dort a
+státní svátky symbol státní budovy. Symboly nemají bílý kruhový podklad.
 
 ROZŠÍŘENÉ FUNKCE
 ----------------
-Koš a obnova událostí; historie změn; zobrazení Rok, Měsíc a Seznam; žádosti o
-přístup; administrace uživatelů; rozšířené hledání, filtrování a řazení;
+Koš a obnova událostí; historie změn; zobrazení Rok, Měsíc a Seznam; žádosti a
+e-mailové pozvánky; administrace uživatelů; úsporné rozbalovací Menu;
+rozšířené hledání, filtrování a řazení;
 společné, soukromé a selektivně sdílené události; společné vlastní kategorie a
 osobní nastavení jejich barev.
 
@@ -46,11 +47,16 @@ PŘIHLÁŠENÍ A UŽIVATELÉ
 Uživatel se přihlásí přes Google. Přístup k událostem dostane pouze tehdy,
 když jeho Firebase UID existuje jako ID dokumentu v kolekci authorizedUsers.
 
-Přidání uživatele:
-1. Uživatel se jednou přihlásí do plánovače.
-2. Aplikace vytvoří žádost o přístup.
-3. Administrátor otevře v aplikaci okno Uživatelé a žádost schválí.
-4. Uživatel obnoví plánovač.
+Přidání uživatele před prvním přihlášením:
+1. Administrátor otevře Menu a okno Uživatelé.
+2. Zadá e-mail Google účtu a vytvoří pozvánku.
+3. Pozvánka čeká v userInvites jako člen.
+4. Při prvním přihlášení přes stejný e-mail aplikace automaticky vytvoří účet
+   v authorizedUsers a pozvánku odstraní.
+
+Nepozvaný účet může nadále vytvořit žádost o přístup, kterou administrátor
+schválí. Pozvaného člověka lze vybrat pro selektivně sdílenou událost až po
+jeho prvním přihlášení, kdy Firebase přidělí UID.
 
 Odebrání přístupu:
 Administrátor použije tlačítko Odebrat v okně Uživatelé. Události uživatele se

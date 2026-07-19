@@ -18,17 +18,21 @@ Podrobný popis funkcí, dat, zabezpečení, připomínek a správy je v
 
 ## Přidání dalšího uživatele
 
-1. Uživatel na stránce zvolí **Přihlásit přes Google**.
-2. Aplikace vytvoří dokument v `accessRequests` a zobrazí informaci, že účet čeká na schválení.
-3. Administrátor otevře v plánovači **Uživatelé** a žádost schválí.
-4. Uživatel obnoví stránku a získá přístup. Administrátor může později změnit jeho roli na člena nebo administrátora.
+Administrátor může uživatele pozvat ještě před prvním přihlášením:
+
+1. V plánovači otevře **Menu → Uživatelé**.
+2. Zadá e-mail Google účtu a zvolí **Pozvat uživatele**.
+3. Pozvánka se uloží do `userInvites` jako čekající člen.
+4. Při prvním přihlášení přes přesně stejný Google e-mail se účet automaticky přidá do `authorizedUsers` a pozvánka se odstraní.
+
+Pokud se nepozvaný člověk pokusí přihlásit, aplikace nadále vytvoří dokument v `accessRequests`; administrátor může žádost schválit v okně **Uživatelé**. Administrátor může později změnit roli člena na administrátora.
 
 Odebrání přístupu se provede v okně **Uživatelé**. Události uživatele se tím nemažou.
 
 Stávající dokumenty v kolekci `events` se nemigrují ani nemažou. Nová pravidla pouze vyžadují přihlášení a kontrolují formát budoucích zápisů.
 
 Rozšířená verze používá také kolekce `restrictedEvents`, `categories`,
-`userSettings`, `accessRequests` a soukromou cestu
+`userSettings`, `accessRequests`, `userInvites` a soukromou cestu
 `users/{uid}/privateEvents`. Nová pravidla a nový `index.html` je potřeba
 nasadit těsně po sobě; nejbezpečnější je nejdřív publikovat pravidla a potom
 okamžitě aplikaci.

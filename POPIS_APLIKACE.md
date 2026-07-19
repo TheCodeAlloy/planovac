@@ -12,7 +12,8 @@ Obecné události jsou v kalendáři označené malou světle modrou tečkou. Na
 - **Historie** – nové a upravené události ukládají čas a UID autora poslední změny.
 - **Zobrazení Rok / Měsíc / Seznam** – vhodnější práce na počítači i telefonu.
 - **Žádosti o přístup** – nepovolený Google účet vytvoří žádost, kterou administrátor schválí v aplikaci.
-- **Správa uživatelů** – administrátor schvaluje, odebírá a mění roli člen/admin.
+- **Správa uživatelů** – administrátor může předem pozvat Google e-mail, schvalovat žádosti, odebírat uživatele a měnit roli člen/admin.
+- **Úsporná horní lišta** – vpravo zůstává přehled příštích sedmi dnů a rozbalovací Menu; méně používané funkce jsou uvnitř menu.
 - **Rozšířená správa událostí** – hledání v názvu, poznámce, datu a kategorii, filtrování a řazení.
 - **Viditelnost událostí** – pro všechny, soukromá nebo pro vybrané uživatele.
 - **Vlastní společné kategorie** – všichni členové je mohou vytvářet, autor nebo administrátor je může upravit či archivovat.
@@ -57,16 +58,17 @@ nebo:
 role: "member"
 ```
 
-Role je nyní pouze popisná. Pravidla rozlišují, zda dokument existuje, nikoliv hodnotu role.
+Role je bezpečnostně významná. `admin` může spravovat uživatele a pozvánky, zatímco `member` používá plánovač bez administrátorských operací.
 
 ### Přidání uživatele
 
-1. Uživatel se jednou pokusí přihlásit do plánovače svým Google účtem.
-2. Jeho účet se objeví ve **Firebase Console → Authentication → Users**.
-3. Správce zkopíruje jeho UID.
-4. Ve **Firestore → Data → authorizedUsers** vytvoří dokument, jehož Document ID je přesně toto UID.
-5. Přidá pole `role` typu string s hodnotou `member`.
-6. Uživatel obnoví stránku plánovače.
+1. Administrátor otevře **Menu → Uživatelé**.
+2. Zadá e-mail Google účtu a klikne na **Pozvat uživatele**.
+3. Pozvánka se zobrazí jako „Pozván – dosud se nepřihlásil“.
+4. Uživatel se poprvé přihlásí přes přesně stejný Google e-mail.
+5. Aplikace automaticky vytvoří jeho účet v `authorizedUsers` s rolí `member` a čekající pozvánku odstraní.
+
+Do prvního přihlášení nemá pozvaný člověk Firebase UID, proto jej ještě nelze vybrat u události sdílené pouze s konkrétními uživateli. Nepozvaný účet může nadále odeslat žádost o přístup, kterou administrátor schválí.
 
 ### Odebrání uživatele
 
@@ -74,7 +76,7 @@ Ve Firestore se smaže pouze jeho dokument z `authorizedUsers`. Jeho účet mů�
 
 ## Datový model
 
-Společné události se ukládají do kolekce `events`. Soukromé události jsou v `users/{uid}/privateEvents` a selektivně sdílené události v `restrictedEvents`. Aplikace zobrazí pouze dokumenty, ke kterým má přihlášený uživatel oprávnění.
+Společné události se ukládají do kolekce `events`. Soukromé události jsou v `users/{uid}/privateEvents` a selektivně sdílené události v `restrictedEvents`. E-mailové pozvánky čekají v `userInvites/{email}` pouze do prvního přihlášení. Aplikace zobrazí pouze dokumenty, ke kterým má přihlášený uživatel oprávnění.
 
 Každý dokument události používá tato pole:
 
@@ -151,7 +153,7 @@ Doporučení: pravidelně provést JSON export, zejména před úpravou pravidel
 
 - Webová stránka a její zdrojový kód jsou veřejné.
 - Soukromé události chrání Firebase Authentication a `firestore.rules`.
-- Přístup má pouze Google účet uvedený v `authorizedUsers`.
+- Přístup má pouze Google účet uvedený v `authorizedUsers`; nový účet se tam může bezpečně aktivovat také pomocí předem vytvořené e-mailové pozvánky.
 - Aplikace nevkládá uživatelský text nebezpečně pomocí `innerHTML`.
 - Mazání události vyžaduje potvrzení.
 - Import omezuje povolená pole, kategorie, délky a formát data.
