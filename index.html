@@ -94,6 +94,11 @@ body.dark .dc.month-sep { border-left-color: #4a4846; }
 .dc .cell-labels { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .dc .cell-strip { display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
 .dc .cell-label { font-size: 10px; line-height: 12px; padding: 1px 3px; overflow: hidden; text-overflow: ellipsis; font-weight: 600; width: 100%; text-align: center; word-break: break-word; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.dc .cell-strip.has-event-icon .cell-label { padding-left: 17px; }
+.cell-event-icon { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 1; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,0.92); color: #49a9e8; border: 1px solid rgba(73,169,232,0.7); box-shadow: 0 1px 2px rgba(0,0,0,0.18); font-size: 10px; line-height: 1; font-weight: 900; pointer-events: none; }
+.cell-category-icon { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 1; width: 15px; height: 15px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.9); font-size:9px; pointer-events:none; }
+body.dark .cell-event-icon { background: rgba(30,29,28,0.9); color: #ffd45c; border-color: rgba(255,212,92,0.55); }
+.visibility-marker { position:absolute; right:2px; top:1px; z-index:2; font-size:9px; line-height:1; filter:drop-shadow(0 1px 1px rgba(255,255,255,.8)); pointer-events:none; }
 .dc:not(.empty):hover .cell-bg { filter: brightness(0.92); }
 .dc:not(.empty):hover .cell-strip { filter: brightness(0.92); }
 
@@ -183,6 +188,25 @@ body.dark #ctx-menu button:hover { background: #333; }
 .rem-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
 .rem-item .rem-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .rem-empty { font-size: 12px; color: var(--gray-400); padding: 20px 0; text-align: center; }
+.inline-controls { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:10px; }
+.inline-controls > * { flex:1; min-width:110px; }
+.user-checks { max-height:145px; overflow:auto; border:1px solid var(--gray-200); border-radius:6px; padding:6px 9px; display:grid; gap:5px; }
+.user-checks label { display:flex; align-items:center; gap:7px; font-size:12px; text-transform:none; letter-spacing:0; }
+.meta-line { color:var(--gray-400); font-size:10px; margin-top:4px; }
+.visibility-badge { font-size:10px; margin-right:4px; }
+.admin-item { display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--gray-100); padding:7px 0; font-size:12px; }
+.admin-item .grow { flex:1; min-width:0; }
+.admin-item button { padding:4px 8px; cursor:pointer; }
+.color-row { display:grid; grid-template-columns:30px 1fr 42px auto; gap:7px; align-items:center; padding:6px 0; border-bottom:1px solid var(--gray-100); }
+.color-row input[type=color] { width:36px; height:28px; padding:0; border:0; background:none; }
+#list-view { display:none; overflow:auto; padding:12px; flex:1; }
+body.view-list #grid-outer { display:none; }
+body.view-list #list-view { display:block; }
+body.view-month #planner .month-hidden { display:none; }
+body.view-month #planner { grid-template-columns:42px minmax(260px,1fr); min-width:300px; }
+.list-day { margin-bottom:14px; }
+.list-day h3 { font-size:12px; color:var(--red); margin-bottom:5px; }
+.list-event { background:var(--gray-100); border-left:4px solid var(--gray-400); padding:7px 9px; margin-bottom:5px; border-radius:4px; font-size:12px; }
 
 /* PIN SCREEN */
 #pin-screen {
@@ -261,12 +285,17 @@ body.dark #ctx-menu button:hover { background: #333; }
   <button class="top-btn" onclick="openAdd()">+ Přidat</button>
   <button class="top-btn" onclick="openReminders()">📆 Příštích 7 dní</button>
   <button class="top-btn" onclick="openManage()">☰ Správa</button>
+  <button class="top-btn" id="view-btn" onclick="cycleView()">▦ Rok</button>
+  <button class="top-btn" onclick="openCategories()">🎨 Kategorie</button>
+  <button class="top-btn" onclick="openUsers()">👥 Uživatelé</button>
+  <button class="top-btn" onclick="openTrash()">🗑 Koš</button>
   <button class="top-btn" id="dark-btn" onclick="toggleDark()">🌙</button>
   <button class="top-btn" onclick="openExport()">⬇ Export</button>
   <button class="top-btn" onclick="logoutPlanner()">↪ Odhlásit</button>
 </div>
 
 <div id="grid-outer"><div id="planner"></div></div>
+<div id="list-view"></div>
 <div class="tooltip" id="tooltip"></div>
 
 <!-- ADD/EDIT MODAL -->
@@ -292,6 +321,18 @@ body.dark #ctx-menu button:hover { background: #333; }
       </select>
     </div>
     <div class="form-row"><label>Poznámka (nepovinné)</label><textarea id="f-note" placeholder="Doplňující informace..."></textarea></div>
+    <div class="form-row">
+      <label>Viditelnost</label>
+      <select id="f-visibility" onchange="renderVisibilityUsers()">
+        <option value="all">🌐 Pro všechny</option>
+        <option value="private">🔒 Soukromá – pouze pro mě</option>
+        <option value="selected">👥 Vybraní uživatelé</option>
+      </select>
+    </div>
+    <div class="form-row" id="visibility-users-row" style="display:none">
+      <label>Kdo událost uvidí</label>
+      <div class="user-checks" id="visibility-users"></div>
+    </div>
     <div class="form-row">
       <label>Opakování</label>
       <div class="repeat-row">
@@ -322,11 +363,25 @@ body.dark #ctx-menu button:hover { background: #333; }
 <div class="overlay" id="manage-overlay">
   <div class="modal" style="width:500px">
     <h2>Správa událostí</h2>
-    <input class="search-input" type="text" id="search-inp" placeholder="Hledat..." oninput="renderManage()">
+    <input class="search-input" type="text" id="search-inp" placeholder="Hledat název, poznámku nebo datum..." oninput="renderManage()">
+    <div class="inline-controls">
+      <select id="manage-cat" onchange="renderManage()"><option value="">Všechny kategorie</option></select>
+      <select id="manage-visibility" onchange="renderManage()"><option value="">Veškerá viditelnost</option><option value="all">Pro všechny</option><option value="private">Soukromé</option><option value="selected">Vybraní</option></select>
+      <select id="manage-sort" onchange="renderManage()"><option value="date">Podle data</option><option value="name">Podle názvu</option><option value="updated">Naposledy změněné</option></select>
+    </div>
     <div id="manage-list"></div>
     <div class="modal-btns"><button onclick="closeManage()">Zavřít</button></div>
   </div>
 </div>
+
+<!-- TRASH MODAL -->
+<div class="overlay" id="trash-overlay"><div class="modal" style="width:560px"><h2>🗑 Koš</h2><div id="trash-list"></div><div class="modal-btns"><button onclick="closeTrash()">Zavřít</button></div></div></div>
+
+<!-- USERS MODAL -->
+<div class="overlay" id="users-overlay"><div class="modal" style="width:600px"><h2>👥 Uživatelé</h2><p style="font-size:11px;color:var(--gray-400);margin-bottom:8px">Schválení uživatelé a žádosti o přístup.</p><div id="users-list"></div><div class="modal-btns"><button onclick="closeUsers()">Zavřít</button></div></div></div>
+
+<!-- CATEGORIES MODAL -->
+<div class="overlay" id="categories-overlay"><div class="modal" style="width:620px"><h2>🎨 Kategorie</h2><div id="category-list"></div><h2 style="margin-top:16px">Nová kategorie</h2><div class="inline-controls"><input id="new-cat-emoji" placeholder="Symbol" maxlength="4" value="●"><input id="new-cat-name" placeholder="Název"><input id="new-cat-color" type="color" value="#4a90e2"><button onclick="createCategory()">Vytvořit</button></div><div class="modal-btns"><button onclick="closeCategories()">Zavřít</button></div></div></div>
 
 <!-- EXPORT MODAL -->
 <div class="overlay" id="export-overlay">
@@ -370,7 +425,7 @@ body.dark #ctx-menu button:hover { background: #333; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -385,64 +440,111 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const eventsCol = collection(db, "events");
-
-// ── expose DB functions to global scope ──
-let _remoteEvents = [];
-
-window._dbSave = async function(ev) {
-  if (!auth.currentUser) throw new Error('Uživatel není přihlášen.');
-  await setDoc(doc(db, "events", ev.id), ev);
-};
-window._dbDelete = async function(id) {
-  if (!auth.currentUser) throw new Error('Uživatel není přihlášen.');
-  await deleteDoc(doc(db, "events", id));
-};
-
 const syncEl = document.getElementById('sync-status');
-let unsubscribeEvents = null;
+let listeners = [];
+let dataState = {publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],user:null,authorized:false,isAdmin:false};
+
+function stopListeners(){listeners.forEach(fn=>fn());listeners=[];}
+function emit(){window.dispatchEvent(new CustomEvent('planner-data'));}
+function watch(ref,success,error){const unsub=onSnapshot(ref,success,error);listeners.push(unsub);}
+function documents(snapshot,source){return snapshot.docs.map(d=>({...d.data(),id:d.id,_source:source}));}
+function currentUid(){if(!auth.currentUser)throw new Error('Uživatel není přihlášen.');return auth.currentUser.uid;}
+function eventDoc(source,id,uid=currentUid()){
+  if(source==='private')return doc(db,'users',uid,'privateEvents',id);
+  if(source==='selected')return doc(db,'restrictedEvents',id);
+  return doc(db,'events',id);
+}
+function targetSource(ev){return ev.visibility==='private'?'private':ev.visibility==='selected'?'selected':'public';}
+function cleanEvent(ev){
+  const out={};
+  ['id','name','dateFrom','dateTo','cat','note','repeat','visibility','ownerUid','visibleTo','createdAt','createdBy','updatedAt','updatedBy','deletedAt','deletedBy'].forEach(k=>{if(ev[k]!==undefined)out[k]=ev[k];});
+  return out;
+}
+
+window._plannerState = dataState;
+window._getEvents = () => [...dataState.publicEvents,...dataState.privateEvents,...dataState.restrictedEvents];
+window._dbSave = async function(ev) {
+  const uid=currentUid(),now=new Date().toISOString(),source=targetSource(ev);
+  const payload=cleanEvent({...ev,visibility:ev.visibility||'all',ownerUid:ev.ownerUid||uid,createdAt:ev.createdAt||now,createdBy:ev.createdBy||uid,updatedAt:now,updatedBy:uid,deletedAt:ev.deletedAt||null,deletedBy:ev.deletedBy||null});
+  if(source==='selected')payload.visibleTo=[...new Set([uid,...(ev.visibleTo||[])])];
+  else delete payload.visibleTo;
+  await setDoc(eventDoc(source,ev.id,uid),payload);
+  if(ev._source&&ev._source!==source)await deleteDoc(eventDoc(ev._source,ev.id,ev.ownerUid||uid));
+};
+window._dbTrash = async function(ev){await window._dbSave({...ev,deletedAt:new Date().toISOString(),deletedBy:currentUid()});};
+window._dbRestore = async function(ev){await window._dbSave({...ev,deletedAt:null,deletedBy:null});};
+window._dbPurge = async function(ev){await deleteDoc(eventDoc(ev._source||targetSource(ev),ev.id,ev.ownerUid||currentUid()));};
+window._saveCategory = async function(category){const uid=currentUid(),now=new Date().toISOString();await setDoc(doc(db,'categories',category.id),{...category,createdBy:category.createdBy||uid,createdAt:category.createdAt||now,updatedBy:uid,updatedAt:now});};
+window._archiveCategory = async function(category){await window._saveCategory({...category,archived:true});};
+window._saveSettings = async function(patch){await setDoc(doc(db,'userSettings',currentUid()),patch,{merge:true});};
+window._approveUser = async function(request){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');await setDoc(doc(db,'authorizedUsers',request.id),{role:'member',displayName:request.displayName||'',email:request.email||'',photoURL:request.photoURL||'',approvedAt:new Date().toISOString(),approvedBy:currentUid()});await deleteDoc(doc(db,'accessRequests',request.id));};
+window._removeUser = async function(user){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');if(user.id===currentUid())throw new Error('Nelze odebrat vlastní účet.');await deleteDoc(doc(db,'authorizedUsers',user.id));};
+window._setUserRole = async function(user,role){if(!dataState.isAdmin)throw new Error('Pouze administrátor.');await setDoc(doc(db,'authorizedUsers',user.id),{role},{merge:true});};
 
 const googleProvider = new GoogleAuthProvider();
 window._authLogin = async function() { await signInWithPopup(auth, googleProvider); };
 window._authLogout = async function() { await signOut(auth); };
 
-onAuthStateChanged(auth, (user) => {
-  if (unsubscribeEvents) { unsubscribeEvents(); unsubscribeEvents = null; }
-  _remoteEvents = [];
+onAuthStateChanged(auth, async (user) => {
+  stopListeners();
+  Object.assign(dataState,{publicEvents:[],privateEvents:[],restrictedEvents:[],users:[],categories:[],settings:{},requests:[],user,authorized:false,isAdmin:false});
   document.getElementById('pin-screen').style.display = user ? 'none' : 'flex';
   if (!user) {
+    document.querySelector('#pin-screen .pin-subtitle').textContent='Přihlaste se ke svým datům';
+    const loginButton=document.querySelector('#pin-screen .login-form button');loginButton.textContent='G  Přihlásit přes Google';loginButton.onclick=()=>loginPlanner();
     syncEl.textContent = '● odhlášeno';
     syncEl.className = '';
-    render();
+    emit();
     return;
   }
+  const authRef=doc(db,'authorizedUsers',user.uid);
+  let authDoc;
+  try{authDoc=await getDoc(authRef);}catch(err){console.error(err);syncEl.textContent='● nelze ověřit přístup';syncEl.className='err';document.getElementById('pin-screen').style.display='flex';document.querySelector('#pin-screen .pin-subtitle').textContent='Přístup se nepodařilo ověřit. Zkuste stránku obnovit.';emit();return;}
+  if(!authDoc.exists()){
+    await setDoc(doc(db,'accessRequests',user.uid),{displayName:user.displayName||'',email:user.email||'',photoURL:user.photoURL||'',requestedAt:new Date().toISOString()},{merge:true});
+    syncEl.textContent='● čeká na schválení';syncEl.className='err';
+    document.getElementById('pin-screen').style.display='flex';
+    document.querySelector('#pin-screen .pin-subtitle').textContent='Váš účet čeká na schválení administrátorem.';
+    const loginButton=document.querySelector('#pin-screen .login-form button');loginButton.textContent='Odhlásit a zvolit jiný účet';loginButton.onclick=()=>logoutPlanner();
+    emit();return;
+  }
+  dataState.authorized=true;dataState.isAdmin=authDoc.data().role==='admin';
+  await setDoc(authRef,{displayName:user.displayName||'',email:user.email||'',photoURL:user.photoURL||'',lastLoginAt:new Date().toISOString()},{merge:true});
   syncEl.textContent = '⟳ připojuji...';
-  unsubscribeEvents = onSnapshot(eventsCol, (snapshot) => {
-    _remoteEvents = snapshot.docs.map(d => d.data());
-    syncEl.textContent = '● online';
-    syncEl.className = 'ok';
-    render();
-  }, (err) => {
-    syncEl.textContent = '● chyba přístupu';
-    syncEl.className = 'err';
-    console.error(err);
-  });
+  const onError=(err)=>{syncEl.textContent='● chyba přístupu';syncEl.className='err';console.error(err);};
+  watch(collection(db,'events'),snapshot=>{dataState.publicEvents=documents(snapshot,'public');syncEl.textContent='● online';syncEl.className='ok';emit();},onError);
+  watch(collection(db,'users',user.uid,'privateEvents'),snapshot=>{dataState.privateEvents=documents(snapshot,'private');emit();},onError);
+  watch(query(collection(db,'restrictedEvents'),where('visibleTo','array-contains',user.uid)),snapshot=>{dataState.restrictedEvents=documents(snapshot,'selected');emit();},onError);
+  watch(collection(db,'categories'),snapshot=>{dataState.categories=documents(snapshot,'category');emit();},onError);
+  watch(doc(db,'userSettings',user.uid),snapshot=>{dataState.settings=snapshot.exists()?snapshot.data():{};emit();},onError);
+  watch(collection(db,'authorizedUsers'),snapshot=>{dataState.users=documents(snapshot,'user');emit();},onError);
+  if(dataState.isAdmin)watch(collection(db,'accessRequests'),snapshot=>{dataState.requests=documents(snapshot,'request');emit();},onError);
+  emit();
 });
-
-window._getEvents = function() { return _remoteEvents; };
 window._dbReady = true;
 </script>
 
 <script>
 const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 const MONTHS_SHORT = ['LED','ÚNO','BŘE','DUB','KVĚ','ČER','ČRC','SRP','ZÁŘ','ŘÍJ','LIS','PRO'];
-const CATS = {
+const BASE_CATS = {
   holiday:  { color: '#2e7d4f', bg: '#eaf7ee', label: 'St.svat',  emoji: '🇨🇿' },
   birthday: { color: '#6a3a9b', bg: '#e8d5f5', label: 'Nar/Sv',   emoji: '🌸' },
   vacation: { color: '#1a7a44', bg: '#a9dfbf', label: 'Dovolená', emoji: '🌴' },
   event:    { color: '#7d5a08', bg: '#f9e79f', label: 'Událost',   emoji: '⭐' },
   eras:     { color: '#1a5276', bg: '#d6eaf8', label: 'Eras',      emoji: '✈️' },
 };
+let CATS={...BASE_CATS};
+function paleColor(hex){const n=parseInt(String(hex).replace('#',''),16);if(Number.isNaN(n))return'#e8eef5';const r=(n>>16)&255,g=(n>>8)&255,b=n&255;return`rgb(${Math.round(r+(255-r)*.72)},${Math.round(g+(255-g)*.72)},${Math.round(b+(255-b)*.72)})`;}
+function syncCategories(){
+  const custom={};
+  (window._plannerState?.categories||[]).forEach(c=>{const override=window._plannerState?.settings?.categoryColors?.[c.id];const color=override||c.color||'#4a90e2';custom[c.id]={color,bg:paleColor(color),label:c.name||'Kategorie',emoji:c.emoji||'●',custom:true,archived:!!c.archived};});
+  const base={};Object.entries(BASE_CATS).forEach(([id,c])=>{const color=window._plannerState?.settings?.categoryColors?.[id]||c.color;base[id]={...c,color,bg:paleColor(color)};});
+  CATS={...base,...custom};
+  refreshCategoryControls();
+  renderLegend();
+}
+function renderLegend(){const legend=document.querySelector('.legend');if(!legend)return;legend.replaceChildren();Object.entries(CATS).filter(([,c])=>!c.archived).forEach(([id,c])=>{const item=el('div','leg'+(hiddenCats?.has(id)?' off':''));item.id='leg-'+id;item.onclick=()=>toggleCat(id);const dot=el('div','leg-dot');dot.style.background=c.color;item.append(dot,document.createTextNode(c.label));legend.appendChild(item);});}
 const BUILTIN = [
   {id:'h1',  name:'Nový rok',          month:1,  day:1,  cat:'holiday', repeat:'yearly'},
   {id:'h2',  name:'Svátek práce',       month:5,  day:1,  cat:'holiday', repeat:'yearly'},
@@ -487,10 +589,11 @@ function isoWeek(y,m,d){
 }
 
 // ── DATA ACCESS (Firebase or fallback localStorage) ──
-function loadEvents(){
+function allEvents(){
   if(window._getEvents) return window._getEvents();
   try{return JSON.parse(localStorage.getItem('planner_v3')||'[]');}catch{return[];}
 }
+function loadEvents(){return allEvents().filter(e=>!e.deletedAt);}
 async function saveEventsArr(evs){
   // not used directly — individual ops below
 }
@@ -500,8 +603,8 @@ async function dbSave(ev){
 }
 async function dbDelete(id){
   const ev=loadEvents().find(e=>e.id===id);
-  if(!confirm(`Opravdu smazat událost „${ev?.name||'bez názvu'}“?`))return false;
-  if(window._dbDelete) await window._dbDelete(id);
+  if(!confirm(`Přesunout událost „${ev?.name||'bez názvu'}“ do koše?`))return false;
+  if(window._dbTrash) await window._dbTrash(ev);
   else { localStorage.setItem('planner_v3',JSON.stringify(loadEvents().filter(e=>e.id!==id))); render(); }
   return true;
 }
@@ -531,7 +634,7 @@ function shiftWindow(delta){
   render();
 }
 function goToday(){
-  windowStart={year:_today.getFullYear(),month:_today.getMonth()+1-3};
+  windowStart={year:_today.getFullYear(),month:_today.getMonth()+1+(plannerView==='month'?0:-3)};
   while(windowStart.month<1){windowStart.year--;windowStart.month+=12;}
   render();
 }
@@ -624,12 +727,14 @@ function render(){
   const nowM=_today.getMonth()+1,nowY=_today.getFullYear();
   const years=[...new Set(cols.map(c=>c.year))];
   const dateMap=buildDateMap(years);
+  const visibleMonthIndex=plannerView==='month'?0:Math.max(0,cols.findIndex(c=>c.year===nowY&&c.month===nowM));
   const p=document.getElementById('planner');
   p.innerHTML='';
 
   const corner=el('div','mh corner');p.appendChild(corner);
   cols.forEach(({year,month},ci)=>{
     const h=el('div','mh');
+    if(plannerView==='month'&&ci!==visibleMonthIndex)h.classList.add('month-hidden');
     if(year===nowY&&month===nowM)h.classList.add('cur-month');
     const prevYear=ci>0?cols[ci-1].year:null;
     h.innerHTML=MONTHS_SHORT[month-1]+(!prevYear||prevYear!==year?`<span class="mh-year">${year}</span>`:'');
@@ -644,7 +749,7 @@ function render(){
 
     cols.forEach(({year,month},ci)=>{
       if(d>daysInMonth(year,month)){
-        const emp=el('div','dc empty');if(ci===0)emp.classList.add('month-sep');p.appendChild(emp);return;
+        const emp=el('div','dc empty');if(ci===0)emp.classList.add('month-sep');if(plannerView==='month'&&ci!==visibleMonthIndex)emp.classList.add('month-hidden');p.appendChild(emp);return;
       }
       const ds=`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const isCurCol=(year===nowY&&month===nowM);
@@ -655,6 +760,7 @@ function render(){
       if(ci===0)cls+=' month-sep';
 
       const cell=el('div',cls);
+      if(plannerView==='month'&&ci!==visibleMonthIndex)cell.classList.add('month-hidden');
       const entries=dateMap[ds]||[];
 
       if(entries.length>0){
@@ -662,10 +768,18 @@ function render(){
         const pct=100/n;
         entries.forEach(({ev,isStart,isOnly},i)=>{
           const cat=CATS[ev.cat]||CATS.event;
-          const isUser=ev.id&&ev.id.startsWith('u_');
+          const isUser=ev.id&&ev.id.startsWith('u_')&&canModifyEvent(ev);
           const strip=el('div','cell-strip');
           strip.style.cssText=`position:absolute;top:0;bottom:0;left:${i*pct}%;width:${pct}%;background:${cat.bg};${isWeekend(year,month,d)?'opacity:0.9;':''}`;
           if(i>0) strip.style.borderLeft='1px solid rgba(255,255,255,0.5)';
+          if(ev.cat==='event'){
+            strip.classList.add('has-event-icon');
+            const icon=el('span','cell-event-icon');icon.textContent='★';icon.setAttribute('aria-hidden','true');strip.appendChild(icon);
+          }
+          else if(cat.custom){strip.classList.add('has-event-icon');const icon=el('span','cell-category-icon');icon.textContent=cat.emoji||'●';strip.appendChild(icon);}
+          if(ev.visibility==='private'||ev.visibility==='selected'){
+            const marker=el('span','visibility-marker');marker.textContent=ev.visibility==='private'?'🔒':'👥';marker.title=ev.visibility==='private'?'Soukromá událost':'Událost pro vybrané uživatele';strip.appendChild(marker);
+          }
           if(isStart||isOnly){
             const lbl=el('div','cell-label');
             lbl.style.color=cat.color;
@@ -731,6 +845,27 @@ function toggleCat(cat){hiddenCats.has(cat)?hiddenCats.delete(cat):hiddenCats.ad
 function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);document.getElementById('dark-btn').textContent=darkMode?'☀️':'🌙';localStorage.setItem('planner_dark',darkMode?'1':'0');}
 if(darkMode)document.getElementById('dark-btn').textContent='☀️';
 
+function currentUser(){return window._plannerState?.user||null;}
+function canModifyEvent(ev){return !ev.visibility||ev.visibility==='all'||ev.ownerUid===currentUser()?.uid||window._plannerState?.isAdmin;}
+function refreshCategoryControls(){
+  const selects=[document.getElementById('f-cat'),document.getElementById('manage-cat')].filter(Boolean);
+  selects.forEach(select=>{
+    const previous=select.value;
+    const first=select.id==='manage-cat'?'<option value="">Všechny kategorie</option>':'';
+    select.innerHTML=first+Object.entries(CATS).map(([id,c])=>`<option value="${id}"${c.archived&&select.id==='f-cat'?' disabled':''}>${c.emoji||'●'} ${escapeHtml(c.label)}${c.archived?' (archivovaná)':''}</option>`).join('');
+    if([...select.options].some(o=>o.value===previous))select.value=previous;
+  });
+}
+function escapeHtml(value){return String(value??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
+function renderVisibilityUsers(selected=[]){
+  const visibility=document.getElementById('f-visibility').value;
+  const row=document.getElementById('visibility-users-row');row.style.display=visibility==='selected'?'block':'none';
+  if(visibility!=='selected')return;
+  const me=currentUser()?.uid,chosen=new Set(selected.length?selected:(window._plannerState?.users||[]).map(u=>u.id));
+  const box=document.getElementById('visibility-users');box.replaceChildren();
+  (window._plannerState?.users||[]).forEach(user=>{const label=el('label','');const cb=document.createElement('input');cb.type='checkbox';cb.value=user.id;cb.checked=user.id===me||chosen.has(user.id);cb.disabled=user.id===me;label.append(cb,document.createTextNode(user.displayName||user.email||user.id));box.appendChild(label);});
+}
+
 function onCatChange() {
   const cat = document.getElementById('f-cat').value;
   const nameEl = document.getElementById('f-name');
@@ -752,6 +887,7 @@ function openAdd(ds){
   document.getElementById('f-date-to').value='';
   document.getElementById('f-cat').value='event';
   document.getElementById('f-note').value='';
+  document.getElementById('f-visibility').value='all';renderVisibilityUsers();
   document.querySelector('input[name=repeat][value=none]').checked=true;
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(),50);
@@ -766,6 +902,7 @@ function openEdit(id){
   document.getElementById('f-date-to').value=ev.dateTo||'';
   document.getElementById('f-cat').value=ev.cat;
   document.getElementById('f-note').value=ev.note||'';
+  document.getElementById('f-visibility').value=ev.visibility||'all';renderVisibilityUsers(ev.visibleTo||[]);
   document.querySelector(`input[name=repeat][value=${ev.repeat||'yearly'}]`).checked=true;
   document.getElementById('add-overlay').classList.add('open');
 }
@@ -776,12 +913,14 @@ async function saveEvent(){
   const dateTo=document.getElementById('f-date-to').value||null;
   const cat=document.getElementById('f-cat').value;
   const note=document.getElementById('f-note').value.trim()||null;
+  const visibility=document.getElementById('f-visibility').value;
+  const visibleTo=visibility==='selected'?[...document.querySelectorAll('#visibility-users input:checked')].map(e=>e.value):null;
   const repeat=document.querySelector('input[name=repeat]:checked').value;
   if(!name||!dateFrom){alert('Vyplň název a datum od.');return;}
   if(dateTo&&dateTo<dateFrom){alert('Datum Do musí být stejné nebo pozdější.');return;}
   const ev=editId
-    ? {...loadEvents().find(e=>e.id===editId), name, dateFrom, dateTo, cat, note, repeat}
-    : {id:'u_'+Date.now(), name, dateFrom, dateTo, cat, note, repeat};
+    ? {...loadEvents().find(e=>e.id===editId), name, dateFrom, dateTo, cat, note, repeat, visibility, visibleTo}
+    : {id:'u_'+crypto.randomUUID().replace(/-/g,''), name, dateFrom, dateTo, cat, note, repeat, visibility, visibleTo};
   await dbSave(ev);
   closeAdd();
 }
@@ -812,7 +951,7 @@ function renderDayList(ds){
       const fp=ev.dateFrom.split('-'),tp=ev.dateTo.split('-');
       dt.textContent=fp[2]+'.'+fp[1]+'. – '+tp[2]+'.'+tp[1]+'.';item.appendChild(dt);
     }
-    if(ev.id&&ev.id.startsWith('u_')){
+    if(ev.id&&ev.id.startsWith('u_')&&canModifyEvent(ev)){
       const ed=el('button','');ed.textContent='✏';ed.title='Upravit';ed.onclick=()=>openEdit(ev.id);item.appendChild(ed);
       const dl=el('button','');dl.textContent='×';dl.title='Smazat';
       dl.onclick=async()=>{await dbDelete(ev.id);renderDayList(ds);};item.appendChild(dl);
@@ -830,11 +969,15 @@ async function moveEvent(id,fromDs,toDs){
   await dbSave({...ev,dateFrom:sh(ev.dateFrom,delta),dateTo:ev.dateTo?sh(ev.dateTo,delta):null});
 }
 
-function openManage(){document.getElementById('search-inp').value='';renderManage();document.getElementById('manage-overlay').classList.add('open');}
+function openManage(){document.getElementById('search-inp').value='';document.getElementById('manage-cat').value='';document.getElementById('manage-visibility').value='';renderManage();document.getElementById('manage-overlay').classList.add('open');}
 function closeManage(){document.getElementById('manage-overlay').classList.remove('open');}
 function renderManage(){
-  const q=document.getElementById('search-inp').value.toLowerCase();
-  const evs=loadEvents().filter(e=>e.id&&e.id.startsWith('u_')).filter(e=>!q||e.name.toLowerCase().includes(q));
+  const q=document.getElementById('search-inp').value.toLowerCase(),catFilter=document.getElementById('manage-cat').value,visibilityFilter=document.getElementById('manage-visibility').value,sort=document.getElementById('manage-sort').value;
+  const evs=loadEvents().filter(e=>e.id&&e.id.startsWith('u_')).filter(e=>{
+    const hay=[e.name,e.note,e.dateFrom,e.dateTo,CATS[e.cat]?.label].filter(Boolean).join(' ').toLowerCase();
+    return(!q||hay.includes(q))&&(!catFilter||e.cat===catFilter)&&(!visibilityFilter||(e.visibility||'all')===visibilityFilter);
+  });
+  evs.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name,'cs'):sort==='updated'?String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')):a.dateFrom.localeCompare(b.dateFrom));
   const list=document.getElementById('manage-list');
   list.innerHTML='';
   if(!evs.length){list.innerHTML='<p style="font-size:12px;color:#9a9790;padding:8px 0;">Žádné vlastní události</p>';return;}
@@ -842,28 +985,65 @@ function renderManage(){
     const cat=CATS[ev.cat]||CATS.event;
     const item=el('div','manage-item');
     const dot=el('div','mi-dot');dot.style.background=cat.color;item.appendChild(dot);
-    const nm=el('span','mi-name');nm.textContent=ev.name;item.appendChild(nm);
+    const nm=el('span','mi-name');const vis=ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':'🌐 ';nm.textContent=vis+ev.name;if(ev.note){const meta=el('div','meta-line');meta.textContent=ev.note;nm.appendChild(meta);}item.appendChild(nm);
     const dt=el('span','mi-date');
     const fp=ev.dateFrom.split('-');
     let tx=fp[2]+'.'+fp[1]+'.'+fp[0];
     if(ev.dateTo){const tp=ev.dateTo.split('-');tx+=' – '+tp[2]+'.'+tp[1]+'.'+tp[0];}
     if(ev.repeat==='yearly')tx+=' ↻';
     dt.textContent=tx;item.appendChild(dt);
-    const ed=el('button','mi-del');ed.textContent='✏';ed.style.fontSize='13px';ed.onclick=()=>{closeManage();openEdit(ev.id);};item.appendChild(ed);
-    const dl=el('button','mi-del');dl.textContent='×';dl.onclick=async()=>{await dbDelete(ev.id);renderManage();render();};item.appendChild(dl);
+    if(ev.updatedAt){const editor=(window._plannerState?.users||[]).find(u=>u.id===ev.updatedBy);const hist=el('span','meta-line');hist.textContent=`Změna ${new Date(ev.updatedAt).toLocaleString('cs-CZ')}${editor?' · '+(editor.displayName||editor.email):''}`;nm.appendChild(hist);}
+    if(canModifyEvent(ev)){const ed=el('button','mi-del');ed.textContent='✏';ed.style.fontSize='13px';ed.onclick=()=>{closeManage();openEdit(ev.id);};item.appendChild(ed);const dl=el('button','mi-del');dl.textContent='×';dl.onclick=async()=>{await dbDelete(ev.id);renderManage();render();};item.appendChild(dl);}
     list.appendChild(item);
   });
 }
 
+function openTrash(){renderTrash();document.getElementById('trash-overlay').classList.add('open');}
+function closeTrash(){document.getElementById('trash-overlay').classList.remove('open');}
+function renderTrash(){
+  const list=document.getElementById('trash-list');list.replaceChildren();const evs=allEvents().filter(e=>e.deletedAt).sort((a,b)=>String(b.deletedAt).localeCompare(String(a.deletedAt)));
+  if(!evs.length){const empty=el('div','empty-day');empty.textContent='Koš je prázdný';list.appendChild(empty);return;}
+  evs.forEach(ev=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=ev.name;const meta=el('div','meta-line');meta.textContent=`Smazáno ${new Date(ev.deletedAt).toLocaleString('cs-CZ')}`;info.appendChild(meta);item.appendChild(info);if(canModifyEvent(ev)){const restore=el('button','');restore.textContent='Obnovit';restore.onclick=async()=>{await window._dbRestore(ev);renderTrash();};const purge=el('button','');purge.textContent='Smazat trvale';purge.onclick=async()=>{if(confirm(`Trvale smazat „${ev.name}“? Tuto operaci nelze vrátit.`)){await window._dbPurge(ev);renderTrash();}};item.append(restore,purge);}list.appendChild(item);});
+}
+
+function openUsers(){renderUsers();document.getElementById('users-overlay').classList.add('open');}
+function closeUsers(){document.getElementById('users-overlay').classList.remove('open');}
+function renderUsers(){
+  const list=document.getElementById('users-list');list.replaceChildren();const state=window._plannerState||{};
+  if(!state.isAdmin){const p=el('div','empty-day');p.textContent='Seznam můžete zobrazit, ale schvalovat a odebírat uživatele může pouze administrátor.';list.appendChild(p);}
+  (state.users||[]).forEach(user=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=user.displayName||user.email||user.id;const meta=el('div','meta-line');meta.textContent=user.email||'';info.appendChild(meta);item.appendChild(info);if(state.isAdmin&&user.id!==state.user?.uid){const role=document.createElement('select');role.innerHTML='<option value="member">Člen</option><option value="admin">Administrátor</option>';role.value=user.role||'member';role.onchange=()=>window._setUserRole(user,role.value);item.appendChild(role);const remove=el('button','');remove.textContent='Odebrat';remove.onclick=async()=>{if(confirm(`Odebrat přístup uživateli ${user.displayName||user.email}?`)){await window._removeUser(user);renderUsers();}};item.appendChild(remove);}else{const badge=el('span','');badge.textContent=user.role==='admin'?'Administrátor':'Člen';item.appendChild(badge);}list.appendChild(item);});
+  if(state.isAdmin&&(state.requests||[]).length){const title=el('h2','');title.style.marginTop='16px';title.textContent='Žádosti o přístup';list.appendChild(title);state.requests.forEach(req=>{const item=el('div','admin-item'),info=el('div','grow');info.textContent=req.displayName||req.email||req.id;const approve=el('button','');approve.textContent='Schválit';approve.onclick=async()=>{await window._approveUser(req);renderUsers();};item.append(info,approve);list.appendChild(item);});}
+}
+
+function openCategories(){renderCategories();document.getElementById('categories-overlay').classList.add('open');}
+function closeCategories(){document.getElementById('categories-overlay').classList.remove('open');}
+function renderCategories(){
+  const list=document.getElementById('category-list');list.replaceChildren();const overrides=window._plannerState?.settings?.categoryColors||{};
+  Object.entries(CATS).forEach(([id,cat])=>{const record=(window._plannerState?.categories||[]).find(c=>c.id===id),row=el('div','color-row');const em=el('span','');em.textContent=cat.emoji||'●';const name=el('span','');name.textContent=cat.label+(cat.archived?' (archivovaná)':'');const color=document.createElement('input');color.type='color';color.value=overrides[id]||cat.color;color.title='Moje barva';color.onchange=()=>saveCategoryColor(id,color.value);row.append(em,name,color);const actions=el('div','');actions.style.display='flex';actions.style.gap='4px';if(record&&(record.createdBy===currentUser()?.uid||window._plannerState?.isAdmin)){const edit=el('button','');edit.textContent='Upravit';edit.onclick=async()=>{const newName=prompt('Název kategorie:',record.name);if(!newName?.trim())return;const newEmoji=prompt('Symbol kategorie:',record.emoji||'●');if(newEmoji===null)return;await window._saveCategory({...record,name:newName.trim(),emoji:newEmoji.trim()||'●'});};actions.appendChild(edit);if(!record.archived){const archive=el('button','');archive.textContent='Archivovat';archive.onclick=async()=>{if(confirm(`Archivovat kategorii „${record.name}“?`))await window._archiveCategory(record);};actions.appendChild(archive);}}row.appendChild(actions);list.appendChild(row);});
+}
+async function saveCategoryColor(id,color){const colors={...(window._plannerState?.settings?.categoryColors||{}),[id]:color};await window._saveSettings({categoryColors:colors});}
+async function createCategory(){const name=document.getElementById('new-cat-name').value.trim(),emoji=document.getElementById('new-cat-emoji').value.trim()||'●',color=document.getElementById('new-cat-color').value;if(!name){alert('Zadejte název kategorie.');return;}const id='c_'+crypto.randomUUID().replace(/-/g,'');await window._saveCategory({id,name,emoji,color,archived:false});document.getElementById('new-cat-name').value='';renderCategories();}
+
+let plannerView=localStorage.getItem('planner_view')||'year';
+function applyView(){document.body.classList.toggle('view-month',plannerView==='month');document.body.classList.toggle('view-list',plannerView==='list');document.getElementById('view-btn').textContent=plannerView==='year'?'▦ Rok':plannerView==='month'?'▣ Měsíc':'☷ Seznam';if(plannerView==='month')windowStart={year:_today.getFullYear(),month:_today.getMonth()+1};else if(plannerView==='year')goToday();if(plannerView==='list')renderListView();else render();}
+function cycleView(){plannerView=plannerView==='year'?'month':plannerView==='month'?'list':'year';localStorage.setItem('planner_view',plannerView);applyView();}
+function renderListView(){
+  const root=document.getElementById('list-view');root.replaceChildren();const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+365);const occurrences=[];
+  const years=[start.getFullYear(),end.getFullYear()];const map=buildDateMap(years);
+  Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).forEach(([ds,entries])=>{const date=parseDate(ds);if(date<start||date>end)return;entries.filter(x=>x.isStart||x.isOnly).forEach(x=>occurrences.push({ds,ev:x.ev}));});
+  if(!occurrences.length){root.textContent='Žádné nadcházející události.';return;}let last='';occurrences.forEach(({ds,ev})=>{if(ds!==last){const day=el('div','list-day'),h=el('h3','');h.textContent=parseDate(ds).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});day.appendChild(h);root.appendChild(day);last=ds;}const target=root.lastElementChild,item=el('div','list-event'),cat=CATS[ev.cat]||CATS.event;item.style.borderLeftColor=cat.color;item.textContent=`${ev.visibility==='private'?'🔒 ':ev.visibility==='selected'?'👥 ':''}${cat.emoji||''} ${ev.name}${ev.note?' — '+ev.note:''}`;target.appendChild(item);});
+}
+
 function openExport(){
-  document.getElementById('export-area').value=JSON.stringify(loadEvents().filter(e=>e.id&&e.id.startsWith('u_')),null,2);
+  document.getElementById('export-area').value=JSON.stringify(exportableEvents(),null,2);
   document.getElementById('export-overlay').classList.add('open');
 }
 function closeExport(){document.getElementById('export-overlay').classList.remove('open');}
 function downloadJson(){
-  const blob=new Blob([JSON.stringify(loadEvents().filter(e=>e.id&&e.id.startsWith('u_')),null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify(exportableEvents(),null,2)],{type:'application/json'});
   const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='planovac-export.json';a.click();URL.revokeObjectURL(url);
 }
+function exportableEvents(){return loadEvents().filter(e=>e.id&&e.id.startsWith('u_')).map(e=>{const out={...e};delete out._source;return out;});}
 function validDateString(value){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
   return fmt(parseDate(value))===value;
@@ -878,9 +1058,11 @@ function normalizeImportedEvent(ev){
   const cat=allowedCats.has(ev.cat)?ev.cat:'event';
   const repeat=ev.repeat==='yearly'?'yearly':'none';
   const note=typeof ev.note==='string'&&ev.note.trim()?ev.note.trim():null;
+  const visibility=['all','private','selected'].includes(ev.visibility)?ev.visibility:'all';
+  const visibleTo=visibility==='selected'&&Array.isArray(ev.visibleTo)?ev.visibleTo.filter(x=>typeof x==='string'):null;
   if(!name||name.length>200||!validDateString(dateFrom)||dateTo&&(!validDateString(dateTo)||dateTo<dateFrom))throw new Error('Neplatný název nebo datum.');
   if(note&&note.length>2000)throw new Error('Poznámka je příliš dlouhá.');
-  return{id,name,dateFrom,dateTo,cat,note,repeat};
+  return{id,name,dateFrom,dateTo,cat,note,repeat,visibility,visibleTo};
 }
 async function importJson(){
   const text=document.getElementById('export-area').value.trim();
@@ -914,11 +1096,11 @@ function downloadIcs(){
   const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='planovac.ics';a.click();URL.revokeObjectURL(url);
 }
 
-['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay'].forEach(id=>{
+['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay','trash-overlay','users-overlay','categories-overlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if(e.key==='Escape')['add-overlay','day-overlay','manage-overlay','export-overlay','reminders-overlay','trash-overlay','users-overlay','categories-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
   if(e.altKey&&e.key==='ArrowLeft')shiftWindow(-1);
   if(e.altKey&&e.key==='ArrowRight')shiftWindow(1);
   if(e.altKey&&e.key==='t')goToday();
@@ -982,7 +1164,7 @@ let ctxDateStr = null;
 
 function openCtxMenu(e, entries, ds, cell) {
   e.preventDefault();
-  const userEntries = entries.filter(en => en.ev.id && en.ev.id.startsWith('u_'));
+  const userEntries = entries.filter(en => en.ev.id && en.ev.id.startsWith('u_') && canModifyEvent(en.ev));
   if (!userEntries.length) return;
 
   let pickedEntry = userEntries[0];
@@ -991,7 +1173,7 @@ function openCtxMenu(e, entries, ds, cell) {
   const n = entries.length;
   const clickedIndex = Math.min(Math.floor(relX * n), n - 1);
   const clickedEntry = entries[clickedIndex];
-  if (clickedEntry && clickedEntry.ev.id && clickedEntry.ev.id.startsWith('u_')) {
+  if (clickedEntry && clickedEntry.ev.id && clickedEntry.ev.id.startsWith('u_') && canModifyEvent(clickedEntry.ev)) {
     pickedEntry = clickedEntry;
   }
 
@@ -1026,6 +1208,7 @@ function ctxEdit() {
   document.getElementById('f-date-to').value = ev.dateTo || '';
   document.getElementById('f-cat').value = ev.cat;
   document.getElementById('f-note').value = ev.note || '';
+  document.getElementById('f-visibility').value=ev.visibility||'all';renderVisibilityUsers(ev.visibleTo||[]);
   document.querySelector(`input[name=repeat][value=${ev.repeat||'none'}]`).checked = true;
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(() => document.getElementById('f-name').focus(), 50);
@@ -1042,6 +1225,7 @@ async function ctxCopy() {
   document.getElementById('f-date-to').value = ev.dateTo || '';
   document.getElementById('f-cat').value = ev.cat;
   document.getElementById('f-note').value = ev.note || '';
+  document.getElementById('f-visibility').value=ev.visibility||'all';renderVisibilityUsers(ev.visibleTo||[]);
   document.querySelector(`input[name=repeat][value=${ev.repeat||'none'}]`).checked = true;
   document.getElementById('add-overlay').classList.add('open');
   setTimeout(() => document.getElementById('f-name').focus(), 50);
@@ -1066,7 +1250,8 @@ async function logoutPlanner() {
   if(window._authLogout)await window._authLogout();
 }
 
-render();
+window.addEventListener('planner-data',()=>{syncCategories();if(plannerView==='list')renderListView();else render();if(document.getElementById('users-overlay').classList.contains('open'))renderUsers();if(document.getElementById('categories-overlay').classList.contains('open'))renderCategories();if(document.getElementById('trash-overlay').classList.contains('open'))renderTrash();});
+syncCategories();applyView();
 </script>
 </body>
 </html>

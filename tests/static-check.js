@@ -15,10 +15,40 @@ for (const required of [
   'planner',
   'sync-status',
   'export-area',
+  'f-visibility',
+  'visibility-users',
+  'trash-overlay',
+  'users-overlay',
+  'categories-overlay',
+  'list-view',
 ]) {
   if (!html.includes(`id="${required}"`)) {
     throw new Error(`Chybí prvek #${required}.`);
   }
+}
+
+for (const feature of [
+  "collection(db,'users',user.uid,'privateEvents')",
+  "collection(db,'restrictedEvents')",
+  "collection(db,'categories')",
+  "collection(db,'authorizedUsers')",
+  "window._dbTrash",
+  "window._dbRestore",
+  "window._approveUser",
+]) {
+  if (!html.includes(feature)) throw new Error(`Chybí implementace: ${feature}`);
+}
+
+const rules = fs.readFileSync('firestore.rules', 'utf8');
+for (const protectedPath of [
+  'privateEvents',
+  'restrictedEvents',
+  'authorizedUsers',
+  'accessRequests',
+  'userSettings',
+  'categories',
+]) {
+  if (!rules.includes(protectedPath)) throw new Error(`Pravidla neobsahují ${protectedPath}.`);
 }
 
 if (html.includes("CORRECT_PIN") || html.includes("const SESSION_KEY")) {

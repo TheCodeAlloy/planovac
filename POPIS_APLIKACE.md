@@ -4,6 +4,20 @@
 
 Roční plánovač zobrazuje dvanáct po sobě jdoucích měsíců v jedné tabulce. Uživatelé mohou vytvářet jednodenní i vícedenní události, opakovat je každý rok, filtrovat kategorie, události upravovat, kopírovat, přesouvat a exportovat.
 
+Obecné události jsou v kalendáři označené kontrastním symbolem `★` v samostatném světlém nebo tmavém odznaku, aby symbol zůstal čitelný i na žlutém pozadí kategorie.
+
+## Rozšířené funkce
+
+- **Koš** – smazaná událost se nejprve skryje a lze ji obnovit nebo později trvale odstranit.
+- **Historie** – nové a upravené události ukládají čas a UID autora poslední změny.
+- **Zobrazení Rok / Měsíc / Seznam** – vhodnější práce na počítači i telefonu.
+- **Žádosti o přístup** – nepovolený Google účet vytvoří žádost, kterou administrátor schválí v aplikaci.
+- **Správa uživatelů** – administrátor schvaluje, odebírá a mění roli člen/admin.
+- **Rozšířená správa událostí** – hledání v názvu, poznámce, datu a kategorii, filtrování a řazení.
+- **Viditelnost událostí** – pro všechny, soukromá nebo pro vybrané uživatele.
+- **Vlastní společné kategorie** – všichni členové je mohou vytvářet, autor nebo administrátor je může upravit či archivovat.
+- **Osobní barvy kategorií** – každý uživatel může zobrazovací barvu změnit pouze pro sebe.
+
 Veřejná adresa aplikace je:
 
 <https://thecodealloy.github.io/planovac/>
@@ -60,7 +74,7 @@ Ve Firestore se smaže pouze jeho dokument z `authorizedUsers`. Jeho účet mů�
 
 ## Datový model
 
-Události jsou společné pro všechny schválené uživatele a ukládají se do kolekce `events`.
+Společné události se ukládají do kolekce `events`. Soukromé události jsou v `users/{uid}/privateEvents` a selektivně sdílené události v `restrictedEvents`. Aplikace zobrazí pouze dokumenty, ke kterým má přihlášený uživatel oprávnění.
 
 Každý dokument události používá tato pole:
 
@@ -73,6 +87,12 @@ Každý dokument události používá tato pole:
 | `cat` | Kategorie: `holiday`, `birthday`, `vacation`, `event`, `eras` |
 | `note` | Poznámka nebo `null` |
 | `repeat` | `none` nebo `yearly` |
+| `visibility` | `all`, `private` nebo `selected` |
+| `ownerUid` | UID vlastníka |
+| `visibleTo` | UID vybraných uživatelů u selektivního sdílení |
+| `createdAt`, `createdBy` | vytvoření a autor |
+| `updatedAt`, `updatedBy` | poslední změna a autor |
+| `deletedAt`, `deletedBy` | informace o přesunu do koše |
 
 České státní svátky a pohyblivé velikonoční svátky jsou zabudované přímo v kódu a do Firestore se neukládají.
 
@@ -137,18 +157,24 @@ Doporučení: pravidelně provést JSON export, zejména před úpravou pravidel
 - Import omezuje povolená pole, kategorie, délky a formát data.
 - Osobní zálohy se nesmějí commitovat ani odesílat na GitHub.
 
-## Doporučené další úpravy
+## Možné další úpravy
 
-1. **Nastavitelné připomínky uvnitř aplikace** – největší chybějící uživatelská funkce.
-2. **Jasná obrazovka „Přístup nebyl schválen“** – nyní se přihlášený, ale nepovolený uživatel dozví o problému hlavně ze stavu synchronizace.
-3. **Správa uživatelů přímo v aplikaci** – pouze pro administrátora; nyní se UID přidává ručně ve Firebase Console.
-4. **Historie změn** – doplnit `createdAt`, `updatedAt`, `createdBy` a `updatedBy`, aby bylo zřejmé, kdo událost změnil.
-5. **Koš nebo archiv** – místo okamžitého definitivního smazání umožnit obnovu.
-6. **Automatické zálohy** – pravidelný export Firestore mimo veřejný repozitář.
-7. **Rozdělení `index.html`** – oddělit HTML, CSS a JavaScript pro snazší údržbu a testování.
-8. **Automatické testy** – testovat opakované a vícedenní události, import, ICS a oprávnění Firestore.
-9. **Lepší mobilní režim** – nabídnout měsíční nebo seznamové zobrazení; tabulka dvanácti měsíců vyžaduje na telefonu vodorovný posun.
-10. **Firebase App Check** – další omezení automatizovaného zneužívání; nenahrazuje přihlášení ani bezpečnostní pravidla.
+1. **Nastavitelné připomínky uvnitř aplikace**.
+2. **Automatické zálohy** mimo veřejný repozitář.
+3. **Rozdělení `index.html`** na HTML, CSS a JavaScript.
+4. **Rozšířené automatické testy** včetně emulátoru Firestore.
+5. **Firebase App Check** jako další omezení automatizovaného zneužívání.
+
+## Bezpečný postup nasazení této rozšířené verze
+
+1. Zkontrolovat JSON zálohu a pracovní kopii.
+2. Nejdříve nahradit pravidla ve Firebase obsahem `firestore.rules` a publikovat je. Stará aplikace bude v krátkém přechodném období pouze pro čtení.
+3. Bezprostředně poté nasadit nový `index.html` na GitHub Pages.
+4. Obnovit aplikaci a ověřit stav `online`.
+5. Ověřit společnou, soukromou a selektivní testovací událost dvěma různými účty.
+6. Ověřit koš a obnovu. Testovací data potom odstranit.
+
+Starou aplikaci nelze dlouhodobě používat s novými pravidly pro zápis, ale stávající události bude dál číst. Proto mají kroky 2 a 3 následovat těsně po sobě.
 
 ## Důležité soubory
 

@@ -11,6 +11,16 @@ upravovat, kopírovat, přesouvat a mazat jednodenní i vícedenní události.
 Události mohou být jednorázové nebo každoročně opakované a jsou rozdělené do
 kategorií.
 
+Obecné události mají kontrastní symbol hvězdy v samostatném odznaku, aby byl
+viditelný i na žlutém pozadí kategorie.
+
+ROZŠÍŘENÉ FUNKCE
+----------------
+Koš a obnova událostí; historie změn; zobrazení Rok, Měsíc a Seznam; žádosti o
+přístup; administrace uživatelů; rozšířené hledání, filtrování a řazení;
+společné, soukromé a selektivně sdílené události; společné vlastní kategorie a
+osobní nastavení jejich barev.
+
 POUŽITÉ SLUŽBY
 --------------
 GitHub:
@@ -38,19 +48,19 @@ když jeho Firebase UID existuje jako ID dokumentu v kolekci authorizedUsers.
 
 Přidání uživatele:
 1. Uživatel se jednou přihlásí do plánovače.
-2. Jeho účet se objeví ve Firebase Authentication / Users.
-3. Správce zkopíruje jeho UID.
-4. Ve Firestore / authorizedUsers vytvoří dokument s tímto UID jako Document ID.
-5. Přidá pole role typu string s hodnotou member.
-6. Uživatel obnoví plánovač.
+2. Aplikace vytvoří žádost o přístup.
+3. Administrátor otevře v aplikaci okno Uživatelé a žádost schválí.
+4. Uživatel obnoví plánovač.
 
 Odebrání přístupu:
-Smaže se dokument uživatele z authorizedUsers. Jeho události se tím nemažou.
+Administrátor použije tlačítko Odebrat v okně Uživatelé. Události uživatele se
+tím nemažou.
 
 DATA
 ----
-Události jsou společné pro všechny schválené uživatele. Jsou uložené v kolekci
-events a používají pole id, name, dateFrom, dateTo, cat, note a repeat.
+Společné události jsou v events. Soukromé události jsou v
+users/{uid}/privateEvents a události pro vybrané uživatele v restrictedEvents.
+Používají také visibility, ownerUid, visibleTo a údaje o vytvoření, změně a koši.
 
 České státní svátky a velikonoční svátky jsou zabudované přímo v aplikaci a
 neukládají se do Firestore.
